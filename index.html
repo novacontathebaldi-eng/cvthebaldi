@@ -47,19 +47,21 @@
             overflow: hidden;
         }
 
-        /* FOTO – ajustado para não criar borda extra nem cortar o oval */
         .profile-photo {
-            width: 110px;
+            width: 110px;             /* ligeiramente menor */
+            height: 110px;
+            border-radius: 50%;
+            background-color: white;
             margin: 0 auto 8px;
+            overflow: hidden;
+            border: 3px solid #3498db;
             flex-shrink: 0;
-            /* removidos: height, border-radius, background-color, overflow, border */
         }
 
         .profile-photo img {
-            display: block;
             width: 100%;
-            height: auto;
-            /* mostra a imagem inteira com o recorte oval do próprio arquivo */
+            height: 100%;
+            object-fit: cover;
         }
 
         .sidebar-name {
@@ -232,7 +234,7 @@
             <div class="section-title">CONTATO</div>
             <div class="contact-item">
                 <strong>Email:</strong>
-                [otavio.thebaldi@gmail.com](mailto:otavio.thebaldi@gmail.com)
+                otavio.thebaldi@gmail.com
             </div>
             <div class="contact-item">
                 <strong>Telefone:</strong>
@@ -265,7 +267,7 @@
         <!-- MAIN CONTENT -->
         <div class="main-content">
             <div class="main-content-name">Otávio Siller Thebaldi</div>
-            <div class="main-content-title">Caixa / Atendimento ao Cliente</div>
+            <div class="main-content-title">Currículo</div>
 
             <div class="section-header">EXPERIÊNCIA PROFISSIONAL</div>
 
