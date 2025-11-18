@@ -47,24 +47,21 @@
             overflow: hidden;
         }
 
-        /* FOTO: borda aplicada na imagem, não no contêiner */
         .profile-photo {
-            width: 110px;             /* tamanho do círculo */
+            width: 110px;             /* ligeiramente menor */
             height: 110px;
+            border-radius: 50%;
+            background-color: white;
             margin: 0 auto 8px;
+            overflow: hidden;
+            border: 3px solid #3498db;
             flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            /* sem border-radius, sem border, sem overflow aqui */
         }
 
         .profile-photo img {
             width: 100%;
             height: 100%;
-            border-radius: 50%;       /* deixa a foto redonda */
-            border: 3px solid #3498db;/* borda azul colada na foto */
-            object-fit: cover;        /* preenche o círculo sem deformar */
+            object-fit: cover;
         }
 
         .sidebar-name {
@@ -237,7 +234,7 @@
             <div class="section-title">CONTATO</div>
             <div class="contact-item">
                 <strong>Email:</strong>
-                [otavio.thebaldi@gmail.com](mailto:otavio.thebaldi@gmail.com)
+                otavio.thebaldi@gmail.com
             </div>
             <div class="contact-item">
                 <strong>Telefone:</strong>
