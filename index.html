@@ -47,21 +47,25 @@
             overflow: hidden;
         }
 
-        /* ====== FOTO AJUSTADA AQUI ====== */
+        /* FOTO: borda aplicada na imagem, não no contêiner */
         .profile-photo {
-            width: 110px;
+            width: 110px;             /* tamanho do círculo */
+            height: 110px;
             margin: 0 auto 8px;
             flex-shrink: 0;
-            /* sem border-radius, sem border, sem overflow, sem height fixa */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            /* sem border-radius, sem border, sem overflow aqui */
         }
 
         .profile-photo img {
-            display: block;
             width: 100%;
-            height: auto;
-            /* deixa a imagem aparecer inteira com a borda que já existe no arquivo */
+            height: 100%;
+            border-radius: 50%;       /* deixa a foto redonda */
+            border: 3px solid #3498db;/* borda azul colada na foto */
+            object-fit: cover;        /* preenche o círculo sem deformar */
         }
-        /* ================================= */
 
         .sidebar-name {
             text-align: center;
