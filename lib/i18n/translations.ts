@@ -1,3 +1,4 @@
+
 import { Language } from '../../types';
 
 export const dictionaries = {
@@ -12,6 +13,10 @@ export const dictionaries = {
     'hero.title': 'MELISSA PELUSSI',
     'hero.cta': 'Explorer la Collection',
     'hero.scroll': 'Défiler',
+    'about.title': 'Au-delà de la Toile',
+    'about.bio1': 'Melissa Pelussi, connue sous le nom de "Meeh", est une artiste contemporaine basée au Luxembourg dont le travail transcende les frontières traditionnelles. Ses collections explorent les émotions brutes de l\'expressionnisme abstrait combinées à la précision de l\'art numérique moderne.',
+    'about.bio2': 'Chaque pièce est un voyage unique dans la couleur et la forme, conçue non seulement pour être vue, mais pour être ressentie. Du Luxembourg au monde, son art vous invite à faire une pause et à réfléchir.',
+    'about.quote': '"L\'art est le silence de la pensée."',
     'footer.rights': 'Tous droits réservés.',
     'footer.links': 'Liens',
     'footer.legal': 'Légal',
@@ -50,6 +55,10 @@ export const dictionaries = {
     'hero.title': 'MELISSA PELUSSI',
     'hero.cta': 'Explore Collection',
     'hero.scroll': 'Scroll',
+    'about.title': 'Beyond The Canvas',
+    'about.bio1': 'Melissa Pelussi, known as "Meeh", is a Luxembourg-based contemporary artist whose work transcends traditional boundaries. Her collections explore the raw emotions of abstract expressionism combined with the precision of modern digital art.',
+    'about.bio2': 'Each piece is a unique journey into color and form, designed not just to be seen, but to be felt. From Luxembourg to the world, her art invites you to pause and reflect.',
+    'about.quote': '"Art is the silence of thought."',
     'footer.rights': 'All rights reserved.',
     'footer.links': 'Links',
     'footer.legal': 'Legal',
@@ -88,6 +97,10 @@ export const dictionaries = {
     'hero.title': 'MELISSA PELUSSI',
     'hero.cta': 'Kollektion Entdecken',
     'hero.scroll': 'Scrollen',
+    'about.title': 'Jenseits der Leinwand',
+    'about.bio1': 'Melissa Pelussi, bekannt als „Meeh“, ist eine in Luxemburg lebende zeitgenössische Künstlerin, deren Arbeit traditionelle Grenzen überschreitet. Ihre Kollektionen erforschen die rohen Emotionen des abstrakten Expressionismus kombiniert mit der Präzision moderner digitaler Kunst.',
+    'about.bio2': 'Jedes Stück ist eine einzigartige Reise in Farbe und Form, entworfen, um nicht nur gesehen, sondern gefühlt zu werden. Von Luxemburg in die Welt lädt ihre Kunst dazu ein, innezuhalten und nachzudenken.',
+    'about.quote': '"Kunst ist die Stille der Gedanken."',
     'footer.rights': 'Alle Rechte vorbehalten.',
     'footer.links': 'Links',
     'footer.legal': 'Rechtliches',
@@ -126,6 +139,10 @@ export const dictionaries = {
     'hero.title': 'MELISSA PELUSSI',
     'hero.cta': 'Explorar Coleção',
     'hero.scroll': 'Rolar',
+    'about.title': 'Além da Tela',
+    'about.bio1': 'Melissa Pelussi, conhecida como "Meeh", é uma artista contemporânea baseada em Luxemburgo cujo trabalho transcende fronteiras tradicionais. Suas coleções exploram as emoções cruas do expressionismo abstrato combinadas com a precisão da arte digital moderna.',
+    'about.bio2': 'Cada peça é uma jornada única em cor e forma, projetada não apenas para ser vista, mas para ser sentida. De Luxemburgo para o mundo, sua arte convida você a pausar e refletir.',
+    'about.quote': '"A arte é o silêncio do pensamento."',
     'footer.rights': 'Todos os direitos reservados.',
     'footer.links': 'Links',
     'footer.legal': 'Legal',
