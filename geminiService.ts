@@ -1,12 +1,11 @@
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 
+// Hardcoded API Key as requested
+const API_KEY = "AIzaSyAIoPE0x2aafoV6aHCw-btQoHVIhkj6dtY";
+
 // Initialize Gemini
 const getAiClient = () => {
-  if (!process.env.API_KEY) {
-    console.warn("API_KEY is missing in process.env. Chatbot will operate in fallback mode.");
-    return null;
-  }
-  return new GoogleGenAI({ apiKey: process.env.API_KEY });
+  return new GoogleGenAI({ apiKey: API_KEY });
 };
 
 export const generateChatResponse = async (
@@ -14,10 +13,7 @@ export const generateChatResponse = async (
   history: { role: 'user' | 'model', parts: { text: string }[] }[]
 ): Promise<string> => {
   const ai = getAiClient();
-  if (!ai) {
-    return "O sistema de IA não está configurado corretamente. Verifique a chave de API.";
-  }
-
+  
   try {
     const chat: Chat = ai.chats.create({
       model: 'gemini-2.5-flash',
@@ -29,6 +25,7 @@ export const generateChatResponse = async (
         Help users find products, understand shipping (worldwide), and art care.
         Answer briefly and elegantly.`,
       },
+      history: history // Pass conversation history for context
     });
 
     // Send message to the model

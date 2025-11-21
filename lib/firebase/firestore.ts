@@ -7,15 +7,14 @@ import {
   updateDoc, 
   deleteDoc,
   query,
-  where,
-  orderBy,
-  limit,
+  onSnapshot,
+  getDocsFromCache,
   DocumentData,
   QueryConstraint
 } from 'firebase/firestore';
 import { db } from './config';
 
-// Genérico para buscar coleção
+// Genérico para buscar coleção (Promise)
 export const getCollection = async (collectionName: string, ...constraints: QueryConstraint[]) => {
   try {
     const colRef = collection(db, collectionName);
@@ -31,7 +30,7 @@ export const getCollection = async (collectionName: string, ...constraints: Quer
   }
 };
 
-// Buscar documento único
+// Buscar documento único (Promise)
 export const getDocument = async (collectionName: string, id: string) => {
   try {
     const docRef = doc(db, collectionName, id);
@@ -83,5 +82,80 @@ export const deleteDocument = async (collectionName: string, id: string) => {
   } catch (error) {
     console.error(`Error deleting document ${id}:`, error);
     throw error;
+  }
+};
+
+// --- REAL-TIME LISTENERS (Para Pix, Pedidos e Admin) ---
+
+/**
+ * Ouve alterações em uma coleção em tempo real.
+ * Retorna uma função unsubscribe para parar de ouvir.
+ */
+export const subscribeToCollection = (
+  collectionName: string, 
+  callback: (data: any[]) => void, 
+  ...constraints: QueryConstraint[]
+) => {
+  const colRef = collection(db, collectionName);
+  const q = query(colRef, ...constraints);
+
+  // onSnapshot mantém uma conexão aberta
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const data = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    callback(data);
+  }, (error) => {
+    console.error(`Error subscribing to collection ${collectionName}:`, error);
+  });
+
+  return unsubscribe;
+};
+
+/**
+ * Ouve alterações em um documento específico em tempo real.
+ * Ideal para mudança de status de pedido (Pendente -> Pago).
+ */
+export const subscribeToDocument = (
+  collectionName: string, 
+  id: string, 
+  callback: (data: any) => void
+) => {
+  const docRef = doc(db, collectionName, id);
+
+  const unsubscribe = onSnapshot(docRef, (docSnap) => {
+    if (docSnap.exists()) {
+      callback({ id: docSnap.id, ...docSnap.data() });
+    } else {
+      callback(null);
+    }
+  }, (error) => {
+    console.error(`Error subscribing to document ${id}:`, error);
+  });
+
+  return unsubscribe;
+};
+
+// --- OFFLINE / CACHE ---
+
+/**
+ * Força a busca de dados do cache local do dispositivo.
+ * Útil quando offline ou para economizar leituras.
+ */
+export const getCollectionFromCache = async (collectionName: string, ...constraints: QueryConstraint[]) => {
+  try {
+    const colRef = collection(db, collectionName);
+    const q = query(colRef, ...constraints);
+    // getDocsFromCache falha se não tiver cache, então o try/catch é importante
+    const snapshot = await getDocsFromCache(q);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (error) {
+    console.warn(`Cache miss for ${collectionName}, falling back to network...`);
+    // Fallback para rede se cache falhar
+    return getCollection(collectionName, ...constraints);
   }
 };
