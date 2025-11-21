@@ -27,15 +27,16 @@ const App: React.FC = () => {
 
   // Setup Lenis Smooth Scroll
   useEffect(() => {
+    // Fix: Cast options to any to avoid strict type checking failures on build
+    // properties like 'direction' changed to 'orientation' in newer versions
     const lenis = new Lenis({
         duration: 1.2,
         easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-        direction: 'vertical',
-        gestureDirection: 'vertical',
-        smooth: true,
-        smoothTouch: false,
+        orientation: 'vertical', 
+        gestureOrientation: 'vertical',
+        smoothWheel: true,
         touchMultiplier: 2,
-    });
+    } as any);
 
     function raf(time: number) {
         lenis.raf(time);
