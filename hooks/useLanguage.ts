@@ -4,7 +4,7 @@ import { Language } from '../types';
 type TranslationKey = 
   | 'nav.home' | 'nav.catalog' | 'nav.about' | 'nav.contact' | 'nav.login' | 'nav.logout'
   | 'hero.subtitle' | 'hero.title' | 'hero.cta' | 'hero.scroll'
-  | 'footer.rights' | 'footer.links' | 'footer.legal' | 'footer.settings' | 'footer.desc'
+  | 'footer.rights' | 'footer.links' | 'footer.legal' | 'footer.settings' | 'footer.desc' | 'footer.language'
   | 'cart.title' | 'cart.empty' | 'cart.start_shopping' | 'cart.subtotal' | 'cart.shipping_note' | 'cart.checkout'
   | 'chat.welcome' | 'chat.placeholder' | 'chat.assistant_name' | 'chat.online'
   | 'common.search' | 'common.close';
@@ -26,6 +26,7 @@ const translations: Record<Language, Record<string, string>> = {
     'footer.legal': 'Légal',
     'footer.settings': 'Paramètres',
     'footer.desc': 'Art contemporain du Luxembourg. Explorer l\'intersection des émotions abstraites et de l\'esthétique moderne.',
+    'footer.language': 'Langue',
     'cart.title': 'Panier',
     'cart.empty': 'Votre panier est vide',
     'cart.start_shopping': 'Commencer les achats',
@@ -55,6 +56,7 @@ const translations: Record<Language, Record<string, string>> = {
     'footer.legal': 'Legal',
     'footer.settings': 'Settings',
     'footer.desc': 'Contemporary art from Luxembourg. Exploring the intersection of abstract emotions and modern aesthetics.',
+    'footer.language': 'Language',
     'cart.title': 'Cart',
     'cart.empty': 'Your cart is empty',
     'cart.start_shopping': 'Start Shopping',
@@ -84,6 +86,7 @@ const translations: Record<Language, Record<string, string>> = {
     'footer.legal': 'Rechtliches',
     'footer.settings': 'Einstellungen',
     'footer.desc': 'Zeitgenössische Kunst aus Luxemburg. Erforschung der Schnittstelle zwischen abstrakten Emotionen und moderner Ästhetik.',
+    'footer.language': 'Sprache',
     'cart.title': 'Warenkorb',
     'cart.empty': 'Ihr Warenkorb ist leer',
     'cart.start_shopping': 'Einkauf starten',
@@ -113,6 +116,7 @@ const translations: Record<Language, Record<string, string>> = {
     'footer.legal': 'Legal',
     'footer.settings': 'Configurações',
     'footer.desc': 'Arte contemporânea de Luxemburgo. Explorando a interseção de emoções abstratas e estética moderna.',
+    'footer.language': 'Idioma',
     'cart.title': 'Carrinho',
     'cart.empty': 'Seu carrinho está vazio',
     'cart.start_shopping': 'Começar a comprar',

@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { ShoppingBag, User, Search, Menu, X, Globe, Sun, Moon, Monitor } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { ShoppingBag, User, Search, Menu, X, Globe, Sun, Moon, Monitor, ChevronUp } from 'lucide-react';
 import { useUIStore, useCartStore, useAuthStore } from '../store';
 import { Theme, Language } from '../types';
 import { useLanguage } from '../hooks/useLanguage';
@@ -83,16 +83,26 @@ export const Footer: React.FC = () => {
   const { theme, setTheme } = useUIStore();
   const { language, setLanguage, t } = useLanguage();
   const [mounted, setMounted] = useState(false);
+  const [isLangOpen, setIsLangOpen] = useState(false);
+  const langMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
+    const handleClickOutside = (event: MouseEvent) => {
+        if (langMenuRef.current && !langMenuRef.current.contains(event.target as Node)) {
+            setIsLangOpen(false);
+        }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Updated to use image URLs instead of Emojis for Windows compatibility
   const languages = [
-    { code: Language.FR, flag: '🇫🇷', label: 'FR' },
-    { code: Language.EN, flag: '🇬🇧', label: 'EN' },
-    { code: Language.DE, flag: '🇩🇪', label: 'DE' },
-    { code: Language.PT, flag: '🇵🇹', label: 'PT' },
+    { code: Language.FR, flagUrl: 'https://flagcdn.com/w40/fr.png', label: 'FR' },
+    { code: Language.EN, flagUrl: 'https://flagcdn.com/w40/gb.png', label: 'EN' },
+    { code: Language.DE, flagUrl: 'https://flagcdn.com/w40/de.png', label: 'DE' },
+    { code: Language.PT, flagUrl: 'https://flagcdn.com/w40/pt.png', label: 'PT' },
   ];
 
   return (
@@ -126,46 +136,78 @@ export const Footer: React.FC = () => {
           <div>
             <h4 className="font-bold mb-6 text-sm uppercase tracking-widest text-gray-500">{t('footer.settings')}</h4>
             
-            {/* Modern Language Selector */}
-            <div className="flex items-center gap-3 mb-6">
-              <div className="bg-white/5 p-1.5 rounded-full border border-white/10 flex items-center gap-2">
-                 <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center text-accent">
-                    <Globe size={16} />
-                 </div>
-                 <div className="flex items-center gap-1 pr-1">
-                    {languages.map((lang) => (
+            <div className="flex flex-col gap-4 items-start">
+                
+                {/* Compact Dropdown Language Selector */}
+                <div className="relative" ref={langMenuRef}>
+                    <button 
+                        onClick={() => setIsLangOpen(!isLangOpen)}
+                        className="flex items-center gap-3 bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2.5 rounded-md transition-all duration-300 group"
+                    >
+                        <span className="text-xs font-medium text-gray-400 uppercase tracking-widest group-hover:text-white transition-colors">
+                            {t('footer.language')}
+                        </span>
+                        <div className="w-px h-4 bg-white/20" />
+                        <Globe size={16} className="text-accent group-hover:scale-110 transition-transform" />
+                    </button>
+
+                    <AnimatePresence>
+                        {isLangOpen && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                transition={{ duration: 0.2 }}
+                                className="absolute bottom-full mb-2 left-0 w-full min-w-[140px] bg-[#252525] border border-white/10 rounded-lg shadow-2xl overflow-hidden z-30 p-1"
+                            >
+                                {languages.map((lang) => (
+                                    <button
+                                        key={lang.code}
+                                        onClick={() => {
+                                            setLanguage(lang.code);
+                                            setIsLangOpen(false);
+                                        }}
+                                        className={`w-full flex items-center justify-between px-3 py-2 rounded text-sm transition-colors ${
+                                            language === lang.code 
+                                            ? 'bg-accent text-white' 
+                                            : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                                        }`}
+                                    >
+                                        <span className="flex items-center gap-3">
+                                            <img 
+                                                src={lang.flagUrl} 
+                                                alt={lang.label}
+                                                className="w-5 h-auto rounded-sm shadow-sm object-cover"
+                                            />
+                                            <span className="uppercase font-medium tracking-wider text-xs">{lang.label}</span>
+                                        </span>
+                                        {language === lang.code && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                    </button>
+                                ))}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+
+                {/* Theme Selector */}
+                <div className="flex gap-1 bg-white/5 p-1 rounded-lg border border-white/10">
+                    {mounted && [Theme.LIGHT, Theme.DARK, Theme.SYSTEM].map((t) => (
                         <button
-                            key={lang.code}
-                            onClick={() => setLanguage(lang.code)}
-                            className={`
-                                h-8 px-3 rounded-full text-xs font-medium transition-all duration-300 flex items-center gap-2
-                                ${language === lang.code 
-                                    ? 'bg-accent text-white shadow-lg transform scale-105' 
-                                    : 'text-gray-400 hover:bg-white/10 hover:text-white'
-                                }
-                            `}
+                            key={t}
+                            onClick={() => setTheme(t)}
+                            className={`p-2 rounded-md transition-all duration-300 ${
+                                theme === t 
+                                ? 'bg-white text-primary shadow-sm' 
+                                : 'text-gray-500 hover:text-white hover:bg-white/10'
+                            }`}
+                            title={`Theme: ${t}`}
                         >
-                            <span className="text-base">{lang.flag}</span>
-                            <span className="uppercase tracking-wider">{lang.label}</span>
+                            {t === Theme.LIGHT && <Sun size={14} />}
+                            {t === Theme.DARK && <Moon size={14} />}
+                            {t === Theme.SYSTEM && <Monitor size={14} />}
                         </button>
                     ))}
-                 </div>
-              </div>
-            </div>
-
-            {/* Theme Selector */}
-            <div className="flex gap-2 bg-white/5 p-1 rounded-lg inline-flex border border-white/10">
-                {mounted && [Theme.LIGHT, Theme.DARK, Theme.SYSTEM].map((t) => (
-                    <button
-                        key={t}
-                        onClick={() => setTheme(t)}
-                        className={`p-2 rounded transition-colors ${theme === t ? 'bg-accent text-white shadow-md' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
-                    >
-                        {t === Theme.LIGHT && <Sun size={16} />}
-                        {t === Theme.DARK && <Moon size={16} />}
-                        {t === Theme.SYSTEM && <Monitor size={16} />}
-                    </button>
-                ))}
+                </div>
             </div>
           </div>
         </div>
