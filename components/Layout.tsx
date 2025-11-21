@@ -136,19 +136,22 @@ export const Footer: React.FC = () => {
           <div>
             <h4 className="font-bold mb-6 text-sm uppercase tracking-widest text-gray-500">{t('footer.settings')}</h4>
             
-            <div className="flex flex-col gap-4 items-start">
+            {/* Container for fixed width matching */}
+            <div className="flex flex-col gap-3 items-start w-[120px]">
                 
                 {/* Compact Dropdown Language Selector */}
-                <div className="relative" ref={langMenuRef}>
+                <div className="relative w-full" ref={langMenuRef}>
                     <button 
                         onClick={() => setIsLangOpen(!isLangOpen)}
-                        className="flex items-center gap-3 bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2.5 rounded-md transition-all duration-300 group"
+                        className="w-full flex items-center justify-between bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-2 rounded-md transition-all duration-300 group"
                     >
-                        <span className="text-xs font-medium text-gray-400 uppercase tracking-widest group-hover:text-white transition-colors">
+                        <span className="text-[10px] font-medium text-gray-400 uppercase tracking-widest group-hover:text-white transition-colors truncate mr-1">
                             {t('footer.language')}
                         </span>
-                        <div className="w-px h-4 bg-white/20" />
-                        <Globe size={16} className="text-accent group-hover:scale-110 transition-transform" />
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                             <div className="w-px h-3 bg-white/20" />
+                             <Globe size={14} className="text-accent group-hover:scale-110 transition-transform" />
+                        </div>
                     </button>
 
                     <AnimatePresence>
@@ -158,7 +161,7 @@ export const Footer: React.FC = () => {
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
                                 transition={{ duration: 0.2 }}
-                                className="absolute bottom-full mb-2 left-0 w-full min-w-[140px] bg-[#252525] border border-white/10 rounded-lg shadow-2xl overflow-hidden z-30 p-1"
+                                className="absolute bottom-full mb-2 left-0 w-full bg-[#252525] border border-white/10 rounded-lg shadow-2xl overflow-hidden z-30 p-1"
                             >
                                 {languages.map((lang) => (
                                     <button
@@ -167,21 +170,21 @@ export const Footer: React.FC = () => {
                                             setLanguage(lang.code);
                                             setIsLangOpen(false);
                                         }}
-                                        className={`w-full flex items-center justify-between px-3 py-2 rounded text-sm transition-colors ${
+                                        className={`w-full flex items-center justify-between px-2 py-1.5 rounded text-sm transition-colors ${
                                             language === lang.code 
                                             ? 'bg-accent text-white' 
                                             : 'text-gray-300 hover:bg-white/5 hover:text-white'
                                         }`}
                                     >
-                                        <span className="flex items-center gap-3">
+                                        <span className="flex items-center gap-2">
                                             <img 
                                                 src={lang.flagUrl} 
                                                 alt={lang.label}
-                                                className="w-5 h-auto rounded-sm shadow-sm object-cover"
+                                                className="w-4 h-auto rounded-sm shadow-sm object-cover"
                                             />
-                                            <span className="uppercase font-medium tracking-wider text-xs">{lang.label}</span>
+                                            <span className="uppercase font-medium tracking-wider text-[10px]">{lang.label}</span>
                                         </span>
-                                        {language === lang.code && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                        {language === lang.code && <div className="w-1 h-1 rounded-full bg-white" />}
                                     </button>
                                 ))}
                             </motion.div>
@@ -190,12 +193,12 @@ export const Footer: React.FC = () => {
                 </div>
 
                 {/* Theme Selector */}
-                <div className="flex gap-1 bg-white/5 p-1 rounded-lg border border-white/10">
+                <div className="w-full grid grid-cols-3 gap-1 bg-white/5 p-1 rounded-lg border border-white/10">
                     {mounted && [Theme.LIGHT, Theme.DARK, Theme.SYSTEM].map((t) => (
                         <button
                             key={t}
                             onClick={() => setTheme(t)}
-                            className={`p-2 rounded-md transition-all duration-300 ${
+                            className={`flex items-center justify-center p-1.5 rounded-md transition-all duration-300 ${
                                 theme === t 
                                 ? 'bg-white text-primary shadow-sm' 
                                 : 'text-gray-500 hover:text-white hover:bg-white/10'
