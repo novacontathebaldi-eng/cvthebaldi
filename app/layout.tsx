@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter, Playfair_Display } from 'next/font/google';
 import React from 'react';
 import './globals.css';
+import Providers from './providers';
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -31,7 +32,9 @@ export default function RootLayout({
         className="bg-light dark:bg-primary text-primary dark:text-white transition-colors duration-300 overflow-x-hidden font-sans"
         suppressHydrationWarning
       >
-        {children}
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );

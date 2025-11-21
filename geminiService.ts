@@ -1,15 +1,12 @@
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 
-// API Key directly injected as requested for testing environment
-const API_KEY = "AIzaSyAIoPE0x2aafoV6aHCw-btQoHVIhkj6dtY";
-
 // Initialize Gemini
 const getAiClient = () => {
-  if (!API_KEY) {
-    console.warn("API_KEY is missing. Chatbot will operate in fallback mode.");
+  if (!process.env.API_KEY) {
+    console.warn("API_KEY is missing in process.env. Chatbot will operate in fallback mode.");
     return null;
   }
-  return new GoogleGenAI({ apiKey: API_KEY });
+  return new GoogleGenAI({ apiKey: process.env.API_KEY });
 };
 
 export const generateChatResponse = async (
