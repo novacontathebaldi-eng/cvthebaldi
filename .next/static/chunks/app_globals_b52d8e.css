@@ -1,0 +1,70 @@
+/* [project]/app/globals.css [app-client] (css) */
+@tailwind base;
+
+@tailwind components;
+
+@tailwind utilities;
+
+:root {
+  --color-black: 44, 44, 44;
+  --color-gold: 212, 175, 55;
+  --color-white: 255, 255, 255;
+  --color-light: 245, 245, 245;
+  --color-gray: 107, 107, 107;
+  --primary: #2c2c2c;
+  --accent: #d4af37;
+  --light: #f5f5f5;
+  --secondary: #6b6b6b;
+  --background: #f5f5f5;
+  --foreground: #2c2c2c;
+}
+
+.dark {
+  --background: #2c2c2c;
+  --foreground: #fff;
+  --light: #1a1a1a;
+}
+
+html.lenis {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-scrolling iframe {
+  pointer-events: none;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--light);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #b59328;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+}
+
+/*# sourceMappingURL=app_globals_b52d8e.css.map*/

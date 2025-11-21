@@ -10,8 +10,11 @@ export const Header: React.FC = () => {
   const { items } = useCartStore();
   const { user, login, logout } = useAuthStore();
   const [scrolled, setScrolled] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
+  // Fix hydration mismatch by waiting for mount
   useEffect(() => {
+    setMounted(true);
     const handleScroll = () => setScrolled(window.scrollY > 50);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
@@ -44,11 +47,11 @@ export const Header: React.FC = () => {
           <div className="relative group">
             <button className="hover:text-accent transition-colors flex items-center gap-2">
                <User size={20} />
-               {user && <span className="text-xs">{user.displayName.split(' ')[0]}</span>}
+               {mounted && user && <span className="text-xs">{user.displayName.split(' ')[0]}</span>}
             </button>
              {/* Simple dropdown for demo */}
              <div className="absolute right-0 mt-2 w-48 bg-primary border border-gray-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all p-2">
-                {user ? (
+                {mounted && user ? (
                     <button onClick={logout} className="w-full text-left px-4 py-2 text-sm hover:bg-white/10 rounded">Logout</button>
                 ) : (
                     <button onClick={login} className="w-full text-left px-4 py-2 text-sm hover:bg-white/10 rounded">Login / Register</button>
@@ -58,7 +61,7 @@ export const Header: React.FC = () => {
 
           <button onClick={toggleCart} className="relative hover:text-accent transition-colors">
             <ShoppingBag size={20} />
-            {items.length > 0 && (
+            {mounted && items.length > 0 && (
               <span className="absolute -top-2 -right-2 bg-accent text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-pulse">
                 {items.length}
               </span>
@@ -78,6 +81,11 @@ export const Header: React.FC = () => {
 // --- Footer ---
 export const Footer: React.FC = () => {
   const { theme, setTheme, language, setLanguage } = useUIStore();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <footer className="bg-[#1a1a1a] text-white pt-20 pb-10 border-t border-white/10">
@@ -115,21 +123,23 @@ export const Footer: React.FC = () => {
             {/* Language Selector */}
             <div className="flex items-center gap-4 mb-6">
                 <Globe size={16} className="text-gray-500" />
-                <select 
-                    value={language} 
-                    onChange={(e) => setLanguage(e.target.value as Language)}
-                    className="bg-transparent border border-gray-700 rounded px-2 py-1 text-sm focus:border-accent outline-none"
-                >
-                    <option value={Language.FR}>FR - Français</option>
-                    <option value={Language.EN}>EN - English</option>
-                    <option value={Language.DE}>DE - Deutsch</option>
-                    <option value={Language.PT}>PT - Português</option>
-                </select>
+                {mounted && (
+                    <select 
+                        value={language} 
+                        onChange={(e) => setLanguage(e.target.value as Language)}
+                        className="bg-transparent border border-gray-700 rounded px-2 py-1 text-sm focus:border-accent outline-none"
+                    >
+                        <option value={Language.FR}>FR - Français</option>
+                        <option value={Language.EN}>EN - English</option>
+                        <option value={Language.DE}>DE - Deutsch</option>
+                        <option value={Language.PT}>PT - Português</option>
+                    </select>
+                )}
             </div>
 
             {/* Theme Selector */}
             <div className="flex gap-2 bg-white/5 p-1 rounded-lg inline-flex">
-                {[Theme.LIGHT, Theme.DARK, Theme.SYSTEM].map((t) => (
+                {mounted && [Theme.LIGHT, Theme.DARK, Theme.SYSTEM].map((t) => (
                     <button
                         key={t}
                         onClick={() => setTheme(t)}
