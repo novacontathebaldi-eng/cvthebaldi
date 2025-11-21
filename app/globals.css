@@ -27,12 +27,13 @@
   --light: #1a1a1a; /* Darker background for cards/sections in dark mode */
 }
 
-html.lenis {
+/* Lenis Recommended Setup */
+html.lenis, html.lenis body {
   height: auto;
 }
 
 .lenis.lenis-smooth {
-  scroll-behavior: auto;
+  scroll-behavior: auto !important;
 }
 
 .lenis.lenis-smooth [data-lenis-prevent] {
@@ -68,4 +69,7 @@ html.lenis {
 body {
   color: var(--foreground);
   background: var(--background);
+  overflow-x: hidden; /* Prevent horizontal scroll only */
+  width: 100%;
+  min-height: 100vh;
 }

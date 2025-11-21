@@ -78,8 +78,8 @@ export const Catalog: React.FC = () => {
         <section id="catalog" className="min-h-screen py-20 bg-light dark:bg-[#252525]">
             <div className="container mx-auto px-6">
                 
-                {/* Tabs */}
-                <div className="flex flex-wrap justify-center gap-8 mb-16 sticky top-20 z-40 bg-light/80 dark:bg-[#252525]/80 backdrop-blur-md py-4">
+                {/* Tabs - Adjusted top position to align perfectly with header (top-16 = 64px) */}
+                <div className="flex flex-wrap justify-center gap-8 mb-16 sticky top-16 z-40 bg-light/80 dark:bg-[#252525]/80 backdrop-blur-md py-4 transition-all duration-300">
                     {tabs.map((tab) => (
                         <button
                             key={tab.id}
