@@ -1,386 +1,88 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Currículo - Otávio Siller Thebaldi</title>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="https://picsum.photos/32/32" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Melissa Pelussi Art | Contemporary Art Luxembourg</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              primary: '#2C2C2C',
+              accent: '#D4AF37',
+              light: '#F5F5F5',
+              secondary: '#6B6B6B'
+            },
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              serif: ['Playfair Display', 'serif'],
+            }
+          }
+        }
+      }
+    </script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        html, body {
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f5f5;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            padding: 5px;
-        }
-
-        .container {
-            width: 210mm;
-            height: 297mm;
-            background-color: white;
-            display: flex;
-            font-size: 12px;          /* antes 14px */
-            line-height: 1.4;         /* antes 1.5  */
-            box-shadow: 0 0 15px rgba(0,0,0,0.1);
-        }
-
-        .sidebar {
-            width: 38%;
-            background-color: #2c3e50;
-            color: white;
-            padding: 12px 10px;       /* um pouco menos que antes */
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        .profile-photo {
-            width: 110px;             /* ligeiramente menor */
-            height: 110px;
-            border-radius: 50%;
-            background-color: white;
-            margin: 0 auto 8px;
-            overflow: hidden;
-            border: 3px solid #3498db;
-            flex-shrink: 0;
-        }
-
-        .profile-photo img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .sidebar-name {
-            text-align: center;
-            font-size: 14px;          /* antes 16px */
-            font-weight: bold;
-            margin-bottom: 2px;
-            color: #3498db;
-        }
-
-        .sidebar-title {
-            text-align: center;
-            font-size: 11px;          /* antes 12px */
-            margin-bottom: 8px;
-            color: #ecf0f1;
-        }
-
-        .section-title {
-            font-size: 13px;          /* antes 14px */
-            font-weight: bold;
-            color: #3498db;
-            margin-top: 10px;
-            margin-bottom: 6px;
-            border-bottom: 2px solid #3498db;
-            padding-bottom: 3px;
-        }
-
-        .sidebar .section-title:first-of-type {
-            margin-top: 0;
-        }
-
-        .contact-item {
-            margin-bottom: 8px;
-            font-size: 12px;          /* antes 13px */
-            word-break: break-word;
-        }
-
-        .contact-item strong {
-            color: #3498db;
-            display: block;
-            font-size: 11px;          /* antes 12px */
-            margin-bottom: 3px;
-        }
-
-        .skills-list {
-            list-style: none;
-        }
-
-        .skills-list li {
-            margin-bottom: 7px;
-            padding-left: 0;
-            font-size: 12px;          /* antes 13px */
-        }
-
-        .skills-list li:before {
-            content: "•";
-            color: #3498db;
-            margin-right: 7px;
-        }
-
-        .main-content {
-            width: 62%;
-            padding: 12px 12px;       /* um pouco menos que antes */
-            overflow-y: auto;
-            overflow-x: hidden;
-        }
-
-        .main-content-name {
-            font-size: 18px;          /* antes 20px */
-            font-weight: bold;
-            color: #2c3e50;
-            margin-bottom: 1px;
-        }
-
-        .main-content-title {
-            font-size: 11px;          /* antes 12px */
-            color: #7f8c8d;
-            margin-bottom: 8px;
-        }
-
-        .section-header {
-            font-size: 13px;          /* antes 14px */
-            font-weight: bold;
-            color: #2c3e50;
-            margin-top: 9px;
-            margin-bottom: 6px;
-            border-bottom: 2px solid #3498db;
-            padding-bottom: 3px;
-        }
-
-        .section-header:first-of-type {
-            margin-top: 0;
-        }
-
-        .experience-item {
-            margin-bottom: 10px;      /* antes 12px */
-        }
-
-        .experience-header {
-            display: block;
-            margin-bottom: 1px;
-        }
-
-        .dates {
-            color: #7f8c8d;
-            font-size: 11px;          /* antes 12px */
-            font-style: italic;
-            margin-bottom: 3px;
-        }
-
-        .position {
-            font-weight: bold;
-            color: #2c3e50;
-            font-size: 12px;          /* antes 13px */
-        }
-
-        .company {
-            color: #3498db;
-            font-weight: bold;
-            font-size: 11px;          /* antes 12px */
-            margin-bottom: 2px;
-        }
-
-        .description {
-            color: #555;
-            font-size: 11px;          /* antes 12px */
-            margin-top: 2px;
-        }
-
-        .description li {
-            margin-left: 14px;
-            margin-bottom: 1px;
-            list-style: disc;
-        }
-
-        @media print {
-            body {
-                padding: 0;
-                background-color: white;
-            }
-            .container {
-                width: 210mm;
-                height: 297mm;
-                box-shadow: none;
-                margin: 0;
-                page-break-after: avoid;
-            }
-            .main-content {
-                overflow: visible;
-            }
-        }
-
-        @page {
-            size: A4;
-            margin: 0;
-            padding: 0;
-        }
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #D4AF37;
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #b59328;
+      }
+      
+      /* Smooth Scroll setup for Lenis */
+      html.lenis {
+        height: auto;
+      }
+      .lenis.lenis-smooth {
+        scroll-behavior: auto;
+      }
+      .lenis.lenis-smooth [data-lenis-prevent] {
+        overscroll-behavior: contain;
+      }
+      .lenis.lenis-stopped {
+        overflow: hidden;
+      }
+      .lenis.lenis-scrolling iframe {
+        pointer-events: none;
+      }
     </style>
+  <script type="importmap">
+{
+  "imports": {
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0",
+    "framer-motion": "https://aistudiocdn.com/framer-motion@^12.23.24",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "zustand/": "https://aistudiocdn.com/zustand@^5.0.8/",
+    "zustand": "https://aistudiocdn.com/zustand@^5.0.8",
+    "@studio-freight/lenis": "https://aistudiocdn.com/@studio-freight/lenis@^1.0.42",
+    "next/": "https://aistudiocdn.com/next@^16.0.3/",
+    "next": "https://aistudiocdn.com/next@^16.0.3",
+    "tailwindcss": "https://aistudiocdn.com/tailwindcss@^4.1.17"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
 </head>
-<body>
-    <div class="container">
-        <!-- SIDEBAR -->
-        <div class="sidebar">
-            <div class="profile-photo">
-                <img src="https://lwkfyvprbhkphoxkorjq.supabase.co/storage/v1/object/public/ALEATORIO/Imagem1.png" alt="Otávio Siller Thebaldi">
-            </div>
-            <div class="sidebar-name">Otávio Siller Thebaldi</div>
-            <div class="sidebar-title"><br></div>
-
-            <div class="section-title">CONTATO</div>
-            <div class="contact-item">
-                <strong>Email:</strong>
-                otavio.thebaldi@gmail.com
-            </div>
-            <div class="contact-item">
-                <strong>Telefone:</strong>
-                +55 (27) 98134-3321
-            </div>
-            <div class="contact-item">
-                <strong>Endereço:</strong>
-                Rua Daniel Abreu Machado, 351, Itararé<br>
-                CEP: 29047-540 – Vitória, ES
-            </div>
-
-            <div class="section-title">HABILIDADES</div>
-            <ul class="skills-list">
-                <li>Atendimento</li>
-                <li>Caixa</li>
-                <li>Revit &amp; BIM</li>
-                <li>AutoCAD</li>
-                <li>Comunicação</li>
-                <li>Organização</li>
-            </ul>
-
-            <div class="section-title">IDIOMAS</div>
-            <ul class="skills-list">
-                <li>Português (Nativo)</li>
-                <li>Francês (Fluente)</li>
-                <li>Inglês (Avançado)</li>
-            </ul>
-        </div>
-
-        <!-- MAIN CONTENT -->
-        <div class="main-content">
-            <div class="main-content-name">Otávio Siller Thebaldi</div>
-            <div class="main-content-title">Currículo</div>
-
-            <div class="section-header">EXPERIÊNCIA PROFISSIONAL</div>
-
-            <div class="experience-item">
-                <div class="experience-header">
-                    <div class="dates">Dezembro 2024 – Agosto 2025</div>
-                    <div class="position">Jardineiro</div>
-                </div>
-                <div class="company">Den Hexemeeschter CIGR DIREGA – Luxemburgo, Europa</div>
-                <ul class="description">
-                    <li>Prestação de serviços para as Prefeituras de Reckange-sur-Mes, Dippach e Garnich, em Luxemburgo</li>
-                </ul>
-            </div>
-
-            <div class="experience-item">
-                <div class="experience-header">
-                    <div class="dates">Julho 2022 – Agosto 2024</div>
-                    <div class="position">Entregador de Refeições</div>
-                </div>
-                <div class="company">WAMMA LOGISTICS SERVICES – Luxemburgo, Europa</div>
-                <ul class="description">
-                    <li>Entrega de refeições prontas aos clientes</li>
-                    <li>Recebimento de pagamentos e encaixes</li>
-                </ul>
-            </div>
-
-            <div class="experience-item">
-                <div class="experience-header">
-                    <div class="dates">Outubro 2019 – Dezembro 2021</div>
-                    <div class="position">Chef de Seção / Gestor de Projetos</div>
-                </div>
-                <div class="company">Prefeitura Municipal de Santa Leopoldina – Santa Leopoldina, ES</div>
-                <ul class="description">
-                    <li>Gestão de projetos técnicos</li>
-                    <li>Supervisão de equipes</li>
-                </ul>
-            </div>
-
-            <div class="experience-item">
-                <div class="experience-header">
-                    <div class="dates">Janeiro 2019 – Setembro 2019</div>
-                    <div class="position">Estagiário em Arquitetura e Urbanismo</div>
-                </div>
-                <div class="company">Prefeitura Municipal de Santa Leopoldina – Santa Leopoldina, ES</div>
-                <ul class="description">
-                    <li>Apoio a projetos de arquitetura</li>
-                </ul>
-            </div>
-
-            <div class="experience-item">
-                <div class="experience-header">
-                    <div class="dates">Janeiro 2018 – Dezembro 2018</div>
-                    <div class="position">Estagiário em Arquitetura e Urbanismo</div>
-                </div>
-                <div class="company">OMEGA PROJETOS E SOLUÇÕES – Santa Leopoldina, ES</div>
-                <ul class="description">
-                    <li>Apoio a projetos residenciais e comerciais</li>
-                </ul>
-            </div>
-
-            <div class="experience-item">
-                <div class="experience-header">
-                    <div class="dates">Março 2014 – Agosto 2017</div>
-                    <div class="position">Frentista / Atendente</div>
-                </div>
-                <div class="company">POSTO AGUA – Santa Leopoldina, ES</div>
-                <ul class="description">
-                    <li>Atendimento aos clientes</li>
-                    <li>Abastecimento de veículos</li>
-                    <li>Recebimento de pagamentos</li>
-                    <li>Gerenciamento de caixa e estoque</li>
-                    <li>Organização e limpeza básica do ambiente de trabalho</li>
-                </ul>
-            </div>
-
-            <div class="experience-item">
-                <div class="experience-header">
-                    <div class="dates">Julho 2013 – Março 2014</div>
-                    <div class="position">Caixa</div>
-                </div>
-                <div class="company">LOTÉRICA SCHIRLY – Santa Leopoldina, ES</div>
-                <ul class="description">
-                    <li>Atendimento ao público no caixa da lotérica</li>
-                    <li>Recebimento de contas, boletos, jogos e outros serviços</li>
-                    <li>Operação e conferência de caixa</li>
-                    <li>Organização de comprovantes e documentos de pagamento</li>
-                </ul>
-            </div>
-
-            <div class="experience-item">
-                <div class="experience-header">
-                    <div class="dates">Julho 2012 – Julho 2013</div>
-                    <div class="position">Vendedor / Assistente</div>
-                </div>
-                <div class="company">LOJAS SCHIRLY – Santa Leopoldina, ES</div>
-                <ul class="description">
-                    <li>Atendimento aos clientes na loja</li>
-                    <li>Organização de produtos, vitrines e estoque</li>
-                    <li>Apoio nas vendas e no fechamento de compras</li>
-                    <li>Auxílio geral nas rotinas da loja</li>
-                </ul>
-            </div>
-
-            <div class="section-header">FORMAÇÃO</div>
-            <div class="experience-item">
-                <div class="position">Curso Superior em Arquitetura e Urbanismo (em andamento)</div>
-                <div class="company">UNISALES – Vitória, ES</div>
-            </div>
-            <div class="experience-item">
-                <div class="position">Ensino Médio Completo</div>
-                <div class="company">E.E.E.F.M. Alice Holzmeister - Concluído em 2011</div>
-            </div>
-        </div>
-    </div>
+  <body class="bg-light dark:bg-primary text-primary dark:text-white transition-colors duration-300 overflow-x-hidden">
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
 </body>
 </html>
