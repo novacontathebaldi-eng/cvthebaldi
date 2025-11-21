@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Star, Quote } from 'lucide-react';
+import { useLanguage } from '../hooks/useLanguage';
 
 const TESTIMONIALS = [
   {
@@ -41,6 +42,8 @@ const TESTIMONIALS = [
 ];
 
 export const Testimonials: React.FC = () => {
+  const { t } = useLanguage();
+
   return (
     <section className="py-32 bg-white dark:bg-[#151515] overflow-hidden relative">
         
@@ -51,9 +54,9 @@ export const Testimonials: React.FC = () => {
             viewport={{ once: true }}
             className="font-serif text-4xl text-primary dark:text-white mb-4"
         >
-            Collector's Voices
+            {t('testimonials.title')}
         </motion.h2>
-        <p className="text-gray-500 uppercase tracking-widest text-sm">Trusted by art lovers worldwide</p>
+        <p className="text-gray-500 uppercase tracking-widest text-sm">{t('testimonials.subtitle')}</p>
       </div>
 
       {/* Gradient Masks for smooth fade out on edges */}
