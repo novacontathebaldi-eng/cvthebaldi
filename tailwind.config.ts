@@ -15,11 +15,12 @@ const config: Config = {
     },
     extend: {
       colors: {
-        primary: '#2C2C2C',
-        accent: '#D4AF37',
-        light: '#F5F5F5',
-        secondary: '#6B6B6B',
-        white: '#FFFFFF',
+        primary: 'var(--primary)',
+        accent: 'var(--accent)',
+        light: 'var(--light)',
+        secondary: 'var(--secondary)',
+        background: 'var(--background)',
+        foreground: 'var(--foreground)',
       },
       fontFamily: {
         sans: ['var(--font-inter)', 'sans-serif'],

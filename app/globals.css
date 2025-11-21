@@ -3,15 +3,27 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 44, 44, 44;
-  --background-rgb: 245, 245, 245;
+  /* Palette Definition */
+  --color-black: 44, 44, 44;    /* #2C2C2C */
+  --color-gold: 212, 175, 55;   /* #D4AF37 */
+  --color-white: 255, 255, 255; /* #FFFFFF */
+  --color-light: 245, 245, 245; /* #F5F5F5 */
+  --color-gray: 107, 107, 107;  /* #6B6B6B */
+
+  /* Default Theme (Dark/Luxury) Mapping */
+  --primary: #2C2C2C;
+  --accent: #D4AF37;
+  --light: #F5F5F5;
+  --secondary: #6B6B6B;
+  --background: #F5F5F5;
+  --foreground: #2C2C2C;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-rgb: 44, 44, 44;
-  }
+/* Dark Mode Overrides via class */
+.dark {
+  --background: #2C2C2C;
+  --foreground: #FFFFFF;
+  --light: #1a1a1a; /* Darker background for light elements in dark mode */
 }
 
 html.lenis {
@@ -40,11 +52,11 @@ html.lenis {
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--light);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #D4AF37;
+  background: var(--accent);
   border-radius: 4px;
 }
 
@@ -53,6 +65,6 @@ html.lenis {
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: rgb(var(--background-rgb));
+  color: var(--foreground);
+  background: var(--background);
 }

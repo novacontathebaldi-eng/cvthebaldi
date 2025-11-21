@@ -2,7 +2,11 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ['picsum.photos', 'firebasestorage.googleapis.com', 'pycvlkcxgfwsquzolkzw.supabase.co'],
+    remotePatterns: [
+      { protocol: 'https', hostname: 'picsum.photos' },
+      { protocol: 'https', hostname: 'firebasestorage.googleapis.com' },
+      { protocol: 'https', hostname: 'pycvlkcxgfwsquzolkzw.supabase.co' },
+    ],
   },
   // SPA-like behavior optimization
   trailingSlash: false,
