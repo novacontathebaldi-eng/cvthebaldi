@@ -1,16 +1,17 @@
 import React, { useEffect } from 'react';
-import { useUIStore } from './store';
-import { Header, Footer } from './components/Layout';
+import { useUIStore, useThemeStore } from './store';
+import { Header } from './components/layout/Header';
+import { Footer } from './components/layout/Footer';
 import { Hero } from './components/Hero';
 import { Catalog } from './components/Catalog';
 import { Chatbot } from './components/Chatbot';
 import { Cart } from './components/Cart';
-import Lenis from '@studio-freight/lenis';
 import { motion } from 'framer-motion';
 import { Theme } from './types';
 
 const App: React.FC = () => {
-  const { theme } = useUIStore();
+  // CORREÇÃO: Usando useThemeStore para o tema
+  const { theme } = useThemeStore();
 
   // Setup Theme
   useEffect(() => {
@@ -24,31 +25,6 @@ const App: React.FC = () => {
         root.classList.add(theme);
     }
   }, [theme]);
-
-  // Setup Lenis Smooth Scroll
-  useEffect(() => {
-    // Fix: Cast options to any to avoid strict type checking failures on build
-    // properties like 'direction' changed to 'orientation' in newer versions
-    const lenis = new Lenis({
-        duration: 1.2,
-        easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-        orientation: 'vertical', 
-        gestureOrientation: 'vertical',
-        smoothWheel: true,
-        touchMultiplier: 2,
-    } as any);
-
-    function raf(time: number) {
-        lenis.raf(time);
-        requestAnimationFrame(raf);
-    }
-
-    requestAnimationFrame(raf);
-
-    return () => {
-        lenis.destroy();
-    };
-  }, []);
 
   return (
     <div className="min-h-screen relative">

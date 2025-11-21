@@ -1,7 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, Check } from 'lucide-react';
+import React from 'react';
+import * as SelectPrimitive from '@radix-ui/react-select';
+import { Check, ChevronDown } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { AnimatePresence, motion } from 'framer-motion';
 
 export interface SelectOption {
   value: string;
@@ -17,79 +18,56 @@ interface SelectProps {
   className?: string;
 }
 
-export const Select: React.FC<SelectProps> = ({ 
-  label, 
-  value, 
-  onChange, 
-  options, 
+export const Select: React.FC<SelectProps> = ({
+  label,
+  value,
+  onChange,
+  options,
   placeholder = "Select...",
-  className 
+  className
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const selectedOption = options.find(opt => opt.value === value);
-
   return (
-    <div className={cn("relative w-full", className)} ref={containerRef}>
+    <div className={cn("w-full", className)}>
       {label && (
         <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 uppercase tracking-wider">
           {label}
         </label>
       )}
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex h-11 w-full items-center justify-between rounded-sm border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-accent dark:border-white/10 dark:text-white"
-      >
-        <span className={cn(!selectedOption && "text-gray-400")}>
-          {selectedOption ? selectedOption.label : placeholder}
-        </span>
-        <ChevronDown size={16} className={cn("transition-transform", isOpen && "rotate-180")} />
-      </button>
+      <SelectPrimitive.Root value={value} onValueChange={onChange}>
+        <SelectPrimitive.Trigger
+          className="flex h-11 w-full items-center justify-between rounded-sm border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-accent dark:border-white/10 dark:text-white data-[placeholder]:text-gray-400"
+        >
+          <SelectPrimitive.Value placeholder={placeholder} />
+          <SelectPrimitive.Icon>
+            <ChevronDown size={16} className="opacity-50" />
+          </SelectPrimitive.Icon>
+        </SelectPrimitive.Trigger>
 
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-            className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-sm border border-gray-200 bg-white py-1 shadow-lg dark:bg-[#1e1e1e] dark:border-white/10"
+        <SelectPrimitive.Portal>
+          <SelectPrimitive.Content
+            className="relative z-50 min-w-[8rem] overflow-hidden rounded-sm border border-gray-200 bg-white shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 dark:border-white/10 dark:bg-[#1e1e1e]"
+            position="popper"
+            sideOffset={5}
           >
-            {options.map((option) => (
-              <div
-                key={option.value}
-                className={cn(
-                  "relative flex cursor-pointer select-none items-center px-3 py-2 text-sm outline-none transition-colors hover:bg-accent hover:text-white dark:text-gray-200",
-                  option.value === value && "bg-accent/10 text-accent dark:bg-accent/20"
-                )}
-                onClick={() => {
-                  onChange(option.value);
-                  setIsOpen(false);
-                }}
-              >
-                <span className="block truncate">{option.label}</span>
-                {option.value === value && (
-                  <span className="absolute right-3 flex items-center justify-center">
-                    <Check size={14} />
+            <SelectPrimitive.Viewport className="p-1">
+              {options.map((option) => (
+                <SelectPrimitive.Item
+                  key={option.value}
+                  value={option.value}
+                  className="relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-white data-[disabled]:pointer-events-none data-[disabled]:opacity-50 dark:focus:text-white dark:text-gray-200"
+                >
+                  <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+                    <SelectPrimitive.ItemIndicator>
+                      <Check size={14} />
+                    </SelectPrimitive.ItemIndicator>
                   </span>
-                )}
-              </div>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
+                  <SelectPrimitive.ItemText>{option.label}</SelectPrimitive.ItemText>
+                </SelectPrimitive.Item>
+              ))}
+            </SelectPrimitive.Viewport>
+          </SelectPrimitive.Content>
+        </SelectPrimitive.Portal>
+      </SelectPrimitive.Root>
     </div>
   );
 };

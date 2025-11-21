@@ -21,7 +21,6 @@ export function formatDate(date: string | number | Date, locale: string = 'fr-LU
 }
 
 export function debounce<T extends (...args: any[]) => void>(func: T, wait: number): (...args: Parameters<T>) => void {
-  // Use ReturnType<typeof setTimeout> to support both Node.js and browser environments instead of NodeJS.Timeout
   let timeout: ReturnType<typeof setTimeout>;
   return (...args: Parameters<T>) => {
     clearTimeout(timeout);
@@ -39,3 +38,5 @@ export function throttle<T extends (...args: any[]) => void>(func: T, limit: num
     }
   };
 }
+
+export const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));

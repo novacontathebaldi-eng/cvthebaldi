@@ -8,6 +8,7 @@ interface CartState {
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, delta: number) => void;
   clearCart: () => void;
+  mergeCart: (remoteItems: CartItem[]) => void;
   total: () => number;
   itemCount: () => number;
 }
@@ -38,6 +39,21 @@ export const useCartStore = create<CartState>()(
         })
       })),
       clearCart: () => set({ items: [] }),
+      mergeCart: (remoteItems) => set((state) => {
+        // Simple merge strategy: prefer remote if conflict, or append
+        // Ideally we would sum quantities, but for simplicity we replace logic
+        // Here we just append items that don't exist
+        const currentItems = [...state.items];
+        remoteItems.forEach(rItem => {
+            const exists = currentItems.find(c => c.id === rItem.id);
+            if (exists) {
+                exists.quantity = Math.max(exists.quantity, rItem.quantity);
+            } else {
+                currentItems.push(rItem);
+            }
+        });
+        return { items: currentItems };
+      }),
       total: () => get().items.reduce((sum, item) => sum + (item.price * item.quantity), 0),
       itemCount: () => get().items.reduce((sum, item) => sum + item.quantity, 0),
     }),

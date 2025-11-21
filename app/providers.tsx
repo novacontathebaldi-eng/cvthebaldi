@@ -2,6 +2,8 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React, { useState, type PropsWithChildren } from 'react';
+import { ToastProvider } from '../components/ui/Toast';
+import { SmoothScroll } from '../components/providers/SmoothScroll';
 
 export default function Providers({ children }: PropsWithChildren) {
   const [queryClient] = useState(
@@ -9,9 +11,7 @@ export default function Providers({ children }: PropsWithChildren) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            // Cache data for 1 minute by default
             staleTime: 60 * 1000,
-            // Retry failed requests once
             retry: 1,
           },
         },
@@ -20,7 +20,11 @@ export default function Providers({ children }: PropsWithChildren) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {children}
+      <ToastProvider>
+        <SmoothScroll>
+          {children}
+        </SmoothScroll>
+      </ToastProvider>
     </QueryClientProvider>
   );
 }

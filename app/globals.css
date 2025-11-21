@@ -10,7 +10,7 @@
   --color-light: 245, 245, 245; /* #F5F5F5 */
   --color-gray: 107, 107, 107;  /* #6B6B6B */
 
-  /* Default Theme (Dark/Luxury) Mapping */
+  /* Default Theme (Light) Mapping */
   --primary: #2C2C2C;
   --accent: #D4AF37;
   --light: #F5F5F5;
@@ -19,11 +19,12 @@
   --foreground: #2C2C2C;
 }
 
-/* Dark Mode Overrides via class */
+/* Dark Mode Overrides */
 .dark {
+  --primary: #F5F5F5; 
   --background: #2C2C2C;
   --foreground: #FFFFFF;
-  --light: #1a1a1a; /* Darker background for light elements in dark mode */
+  --light: #1a1a1a; /* Darker background for cards/sections in dark mode */
 }
 
 html.lenis {
