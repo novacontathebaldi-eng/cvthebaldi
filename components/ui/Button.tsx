@@ -1,0 +1,47 @@
+import React from 'react';
+import { motion, HTMLMotionProps } from 'framer-motion';
+import { cn } from '../../lib/utils';
+import { Loader2 } from 'lucide-react';
+
+interface ButtonProps extends HTMLMotionProps<"button"> {
+  variant?: 'primary' | 'secondary' | 'tertiary' | 'ghost';
+  size?: 'sm' | 'md' | 'lg';
+  isLoading?: boolean;
+  icon?: React.ReactNode;
+}
+
+export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant = 'primary', size = 'md', isLoading, icon, children, ...props }, ref) => {
+    
+    const baseStyles = "inline-flex items-center justify-center rounded transition-colors font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none";
+    
+    const variants = {
+      primary: "bg-accent text-white hover:bg-[#b59328] focus:ring-accent",
+      secondary: "bg-primary text-white hover:bg-gray-800 dark:bg-white dark:text-primary dark:hover:bg-gray-200 focus:ring-primary",
+      tertiary: "border border-gray-300 text-primary hover:bg-gray-50 dark:border-white/20 dark:text-white dark:hover:bg-white/5",
+      ghost: "text-primary hover:bg-gray-100 dark:text-white dark:hover:bg-white/5",
+    };
+
+    const sizes = {
+      sm: "h-9 px-3 text-xs uppercase tracking-widest",
+      md: "h-11 px-6 text-sm uppercase tracking-widest",
+      lg: "h-14 px-8 text-base uppercase tracking-widest",
+    };
+
+    return (
+      <motion.button
+        ref={ref}
+        whileTap={{ scale: 0.98 }}
+        className={cn(baseStyles, variants[variant], sizes[size], className)}
+        disabled={isLoading || props.disabled}
+        {...props}
+      >
+        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {!isLoading && icon && <span className="mr-2">{icon}</span>}
+        {children}
+      </motion.button>
+    );
+  }
+);
+
+Button.displayName = "Button";

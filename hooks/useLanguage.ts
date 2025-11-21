@@ -1,0 +1,140 @@
+import { useUIStore } from '../store/uiStore';
+import { Language } from '../types';
+
+type TranslationKey = 
+  | 'nav.home' | 'nav.catalog' | 'nav.about' | 'nav.contact' | 'nav.login' | 'nav.logout'
+  | 'hero.subtitle' | 'hero.title' | 'hero.cta' | 'hero.scroll'
+  | 'footer.rights' | 'footer.links' | 'footer.legal' | 'footer.settings' | 'footer.desc'
+  | 'cart.title' | 'cart.empty' | 'cart.start_shopping' | 'cart.subtotal' | 'cart.shipping_note' | 'cart.checkout'
+  | 'chat.welcome' | 'chat.placeholder' | 'chat.assistant_name' | 'chat.online'
+  | 'common.search' | 'common.close';
+
+const translations: Record<Language, Record<string, string>> = {
+  [Language.FR]: {
+    'nav.home': 'Accueil',
+    'nav.catalog': 'Catalogue',
+    'nav.about': 'À propos',
+    'nav.contact': 'Contact',
+    'nav.login': 'Connexion / S\'inscrire',
+    'nav.logout': 'Déconnexion',
+    'hero.subtitle': 'Art Contemporain du Luxembourg',
+    'hero.title': 'MELISSA PELUSSI',
+    'hero.cta': 'Explorer la Collection',
+    'hero.scroll': 'Défiler',
+    'footer.rights': 'Tous droits réservés.',
+    'footer.links': 'Liens',
+    'footer.legal': 'Légal',
+    'footer.settings': 'Paramètres',
+    'footer.desc': 'Art contemporain du Luxembourg. Explorer l\'intersection des émotions abstraites et de l\'esthétique moderne.',
+    'cart.title': 'Panier',
+    'cart.empty': 'Votre panier est vide',
+    'cart.start_shopping': 'Commencer les achats',
+    'cart.subtotal': 'Sous-total',
+    'cart.shipping_note': 'Frais de port calculés au paiement.',
+    'cart.checkout': 'Payer',
+    'chat.welcome': 'Bonjour! Je suis Meeh Assistant. Comment puis-je vous aider avec les oeuvres de Melissa Pelussi aujourd\'hui?',
+    'chat.placeholder': 'Posez une question sur l\'art...',
+    'chat.assistant_name': 'Assistant Meeh',
+    'chat.online': 'En ligne',
+    'common.search': 'Rechercher',
+    'common.close': 'Fermer',
+  },
+  [Language.EN]: {
+    'nav.home': 'Home',
+    'nav.catalog': 'Catalog',
+    'nav.about': 'About',
+    'nav.contact': 'Contact',
+    'nav.login': 'Login / Register',
+    'nav.logout': 'Logout',
+    'hero.subtitle': 'Contemporary Art from Luxembourg',
+    'hero.title': 'MELISSA PELUSSI',
+    'hero.cta': 'Explore Collection',
+    'hero.scroll': 'Scroll',
+    'footer.rights': 'All rights reserved.',
+    'footer.links': 'Links',
+    'footer.legal': 'Legal',
+    'footer.settings': 'Settings',
+    'footer.desc': 'Contemporary art from Luxembourg. Exploring the intersection of abstract emotions and modern aesthetics.',
+    'cart.title': 'Cart',
+    'cart.empty': 'Your cart is empty',
+    'cart.start_shopping': 'Start Shopping',
+    'cart.subtotal': 'Subtotal',
+    'cart.shipping_note': 'Shipping calculated at checkout.',
+    'cart.checkout': 'Checkout',
+    'chat.welcome': 'Hello! I am Meeh Assistant. How can I help you with Melissa Pelussi\'s artworks today?',
+    'chat.placeholder': 'Ask about art...',
+    'chat.assistant_name': 'Meeh Assistant',
+    'chat.online': 'Online',
+    'common.search': 'Search',
+    'common.close': 'Close',
+  },
+  [Language.DE]: {
+    'nav.home': 'Startseite',
+    'nav.catalog': 'Katalog',
+    'nav.about': 'Über uns',
+    'nav.contact': 'Kontakt',
+    'nav.login': 'Anmelden / Registrieren',
+    'nav.logout': 'Abmelden',
+    'hero.subtitle': 'Zeitgenössische Kunst aus Luxemburg',
+    'hero.title': 'MELISSA PELUSSI',
+    'hero.cta': 'Kollektion Entdecken',
+    'hero.scroll': 'Scrollen',
+    'footer.rights': 'Alle Rechte vorbehalten.',
+    'footer.links': 'Links',
+    'footer.legal': 'Rechtliches',
+    'footer.settings': 'Einstellungen',
+    'footer.desc': 'Zeitgenössische Kunst aus Luxemburg. Erforschung der Schnittstelle zwischen abstrakten Emotionen und moderner Ästhetik.',
+    'cart.title': 'Warenkorb',
+    'cart.empty': 'Ihr Warenkorb ist leer',
+    'cart.start_shopping': 'Einkauf starten',
+    'cart.subtotal': 'Zwischensumme',
+    'cart.shipping_note': 'Versand wird an der Kasse berechnet.',
+    'cart.checkout': 'Zur Kasse',
+    'chat.welcome': 'Hallo! Ich bin Meeh Assistant. Wie kann ich Ihnen heute mit den Kunstwerken von Melissa Pelussi helfen?',
+    'chat.placeholder': 'Fragen Sie nach Kunst...',
+    'chat.assistant_name': 'Meeh Assistent',
+    'chat.online': 'Online',
+    'common.search': 'Suchen',
+    'common.close': 'Schließen',
+  },
+  [Language.PT]: {
+    'nav.home': 'Início',
+    'nav.catalog': 'Catálogo',
+    'nav.about': 'Sobre',
+    'nav.contact': 'Contato',
+    'nav.login': 'Entrar / Registrar',
+    'nav.logout': 'Sair',
+    'hero.subtitle': 'Arte Contemporânea de Luxemburgo',
+    'hero.title': 'MELISSA PELUSSI',
+    'hero.cta': 'Explorar Coleção',
+    'hero.scroll': 'Rolar',
+    'footer.rights': 'Todos os direitos reservados.',
+    'footer.links': 'Links',
+    'footer.legal': 'Legal',
+    'footer.settings': 'Configurações',
+    'footer.desc': 'Arte contemporânea de Luxemburgo. Explorando a interseção de emoções abstratas e estética moderna.',
+    'cart.title': 'Carrinho',
+    'cart.empty': 'Seu carrinho está vazio',
+    'cart.start_shopping': 'Começar a comprar',
+    'cart.subtotal': 'Subtotal',
+    'cart.shipping_note': 'Frete calculado no checkout.',
+    'cart.checkout': 'Finalizar Compra',
+    'chat.welcome': 'Olá! Sou o Assistente Meeh. Como posso ajudar com as obras de Melissa Pelussi hoje?',
+    'chat.placeholder': 'Pergunte sobre a arte...',
+    'chat.assistant_name': 'Assistente Meeh',
+    'chat.online': 'Online',
+    'common.search': 'Buscar',
+    'common.close': 'Fechar',
+  }
+};
+
+export const useLanguage = () => {
+  const { language, setLanguage } = useUIStore();
+
+  const t = (key: TranslationKey | string): string => {
+    // @ts-ignore
+    return translations[language]?.[key] || key;
+  };
+
+  return { language, setLanguage, t };
+};

@@ -4,15 +4,29 @@ import { MessageCircle, X, Send, Loader2, Sparkles } from 'lucide-react';
 import { useUIStore } from '../store';
 import { generateChatResponse } from '../geminiService';
 import { ChatMessage } from '../types';
+import { useLanguage } from '../hooks/useLanguage';
 
 export const Chatbot: React.FC = () => {
   const { isChatOpen, toggleChat } = useUIStore();
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    { id: 'welcome', role: 'model', text: 'Bonjour! Je suis Meeh Assistant. Comment puis-je vous aider avec les oeuvres de Melissa Pelussi aujourd\'hui?', timestamp: Date.now() }
-  ]);
+  const { t, language } = useLanguage();
+  
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [hasInteracted, setHasInteracted] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Reset/Update Welcome message when language changes if user hasn't interacted
+  useEffect(() => {
+    if (!hasInteracted) {
+        setMessages([{ 
+            id: 'welcome', 
+            role: 'model', 
+            text: t('chat.welcome'), 
+            timestamp: Date.now() 
+        }]);
+    }
+  }, [language, hasInteracted, t]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -25,6 +39,8 @@ export const Chatbot: React.FC = () => {
   const handleSend = async () => {
     if (!inputValue.trim()) return;
 
+    setHasInteracted(true); // User has now interacted, stop auto-updating welcome msg
+
     const userMsg: ChatMessage = {
         id: Date.now().toString(),
         role: 'user',
@@ -36,7 +52,7 @@ export const Chatbot: React.FC = () => {
     setInputValue('');
     setIsLoading(true);
 
-    // Convert history for context (simplified)
+    // Convert history for context
     const history = messages.map(m => ({
         role: m.role,
         parts: [{ text: m.text }]
@@ -106,8 +122,8 @@ export const Chatbot: React.FC = () => {
                         <Sparkles size={20} />
                     </div>
                     <div>
-                        <h3 className="font-serif font-bold text-lg text-primary dark:text-white">Meeh Assistant</h3>
-                        <span className="text-xs text-green-500 flex items-center gap-1">● Online</span>
+                        <h3 className="font-serif font-bold text-lg text-primary dark:text-white">{t('chat.assistant_name')}</h3>
+                        <span className="text-xs text-green-500 flex items-center gap-1">● {t('chat.online')}</span>
                     </div>
                 </div>
                 <button onClick={toggleChat} className="text-gray-500 hover:text-primary dark:hover:text-white">
@@ -151,7 +167,7 @@ export const Chatbot: React.FC = () => {
                         value={inputValue}
                         onChange={(e) => setInputValue(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder="Ask about art..."
+                        placeholder={t('chat.placeholder')}
                         className="flex-1 bg-gray-100 dark:bg-white/5 border-none rounded-full px-4 py-3 text-sm focus:ring-2 focus:ring-accent outline-none dark:text-white"
                     />
                     <button 

@@ -1,7 +1,9 @@
 import React, { useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
+import { useLanguage } from '../hooks/useLanguage';
 
 export const Hero: React.FC = () => {
+  const { t } = useLanguage();
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -40,7 +42,7 @@ export const Hero: React.FC = () => {
             transition={{ duration: 0.8, delay: 0.2 }}
         >
             <h2 className="text-accent text-sm md:text-base tracking-[0.3em] uppercase mb-4">
-                Contemporary Art from Luxembourg
+                {t('hero.subtitle')}
             </h2>
         </motion.div>
         
@@ -50,7 +52,7 @@ export const Hero: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
         >
-            MELISSA PELUSSI
+            {t('hero.title')}
         </motion.h1>
 
         <motion.button
@@ -62,7 +64,7 @@ export const Hero: React.FC = () => {
                 document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' });
             }}
         >
-            Explore Collection
+            {t('hero.cta')}
         </motion.button>
       </motion.div>
       
@@ -72,7 +74,7 @@ export const Hero: React.FC = () => {
         animate={{ y: [0, 10, 0] }}
         transition={{ duration: 2, repeat: Infinity }}
       >
-        <span className="text-[10px] tracking-widest uppercase">Scroll</span>
+        <span className="text-[10px] tracking-widest uppercase">{t('hero.scroll')}</span>
         <div className="w-[1px] h-12 bg-gradient-to-b from-white/0 via-white/50 to-white/0" />
       </motion.div>
     </div>
