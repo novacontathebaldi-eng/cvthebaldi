@@ -8,12 +8,7 @@ const config: Config = {
   ],
   darkMode: 'class',
   theme: {
-    screens: {
-      'mobile': '0px',
-      'tablet': '768px',
-      'desktop': '1024px',
-      'wide': '1440px',
-    },
+    // REMOVED: Custom screens object that was breaking standard md:/lg: classes
     extend: {
       colors: {
         primary: 'var(--primary)',
