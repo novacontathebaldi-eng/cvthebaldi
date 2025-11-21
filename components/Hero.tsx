@@ -49,7 +49,7 @@ export const Hero: React.FC = () => {
       >
         {/* Abstract Luxury Art Background */}
         <img 
-            src="https://picsum.photos/seed/art_luxury/1920/1080" 
+            src="https://user-gen-media-assets.s3.amazonaws.com/gemini_images/8faf1f51-ea46-4fff-a971-7c27a89fb94a.png" 
             alt="Art Background" 
             className="w-full h-full object-cover opacity-70"
         />
