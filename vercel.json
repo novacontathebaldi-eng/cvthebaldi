@@ -1,7 +1,5 @@
-
 {
   "version": 2,
-  "outputDirectory": "out",
   "headers": [
     {
       "source": "/(.*)",
