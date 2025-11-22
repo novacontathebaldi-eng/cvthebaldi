@@ -6,8 +6,10 @@ const nextConfig = {
       { protocol: 'https', hostname: 'firebasestorage.googleapis.com' },
       { protocol: 'https', hostname: 'pycvlkcxgfwsquzolkzw.supabase.co' },
       { protocol: 'https', hostname: 'flagcdn.com' },
+      { protocol: 'https', hostname: 'user-gen-media-assets.s3.amazonaws.com' },
     ],
   },
+  // Nenhuma configuração de output 'export' deve ser adicionada aqui para deploy serverless no Vercel
 };
 
 module.exports = nextConfig;
