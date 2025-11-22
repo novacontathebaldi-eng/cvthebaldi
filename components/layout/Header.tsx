@@ -19,11 +19,21 @@ export const Header: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Definição de cores baseada no estado de scroll
+  // Quando scrolled: Fundo sólido (Branco no Light, Preto no Dark) e texto contrastante
+  // Quando topo: Fundo transparente e texto sempre Branco (por causa do Hero)
+  const headerClasses = scrolled
+    ? 'bg-white/90 dark:bg-[#1a1a1a]/90 backdrop-blur-md shadow-sm py-3 text-primary dark:text-white border-gray-200 dark:border-white/10'
+    : 'bg-transparent py-6 text-white border-transparent';
+
+  // Cor do logo e ícones quando scrolled vs topo
+  const contentColorClass = scrolled 
+    ? 'text-primary dark:text-white' 
+    : 'text-white';
+
   return (
     <motion.header
-      className={`fixed top-0 w-full z-50 transition-all duration-300 border-b border-transparent ${
-        scrolled ? 'bg-primary/80 backdrop-blur-md border-white/10 py-3' : 'bg-transparent py-6'
-      }`}
+      className={`fixed top-0 w-full z-50 transition-all duration-300 border-b ${headerClasses}`}
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.5 }}
@@ -34,13 +44,13 @@ export const Header: React.FC = () => {
             <div className="w-10 h-10 bg-accent rounded-full flex items-center justify-center mr-3">
                 <span className="font-serif font-bold text-white text-xl">M</span>
             </div>
-            <span className={`font-serif text-2xl font-bold tracking-tighter ${scrolled ? 'text-white' : 'text-white mix-blend-difference'}`}>
+            <span className={`font-serif text-2xl font-bold tracking-tighter ${scrolled ? 'text-primary dark:text-white' : 'text-white mix-blend-difference'}`}>
                 MELISSA PELUSSI
             </span>
         </div>
 
         {/* Desktop Icons */}
-        <div className="hidden md:flex items-center gap-6 text-white">
+        <div className={`hidden md:flex items-center gap-6 ${contentColorClass}`}>
           <button onClick={toggleSearch} className="hover:text-accent transition-colors" aria-label={t('common.search')}>
             <Search size={20} />
           </button>
@@ -50,11 +60,11 @@ export const Header: React.FC = () => {
                <User size={20} />
                {mounted && user && <span className="text-xs">{user.displayName.split(' ')[0]}</span>}
             </button>
-             <div className="absolute right-0 mt-2 w-48 bg-primary border border-gray-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all p-2">
+             <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all p-2 text-primary dark:text-white">
                 {mounted && user ? (
-                    <button onClick={logout} className="w-full text-left px-4 py-2 text-sm hover:bg-white/10 rounded">{t('nav.logout')}</button>
+                    <button onClick={logout} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-white/10 rounded">{t('nav.logout')}</button>
                 ) : (
-                    <button onClick={login} className="w-full text-left px-4 py-2 text-sm hover:bg-white/10 rounded">{t('nav.login')}</button>
+                    <button onClick={login} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-white/10 rounded">{t('nav.login')}</button>
                 )}
              </div>
           </div>
@@ -70,7 +80,7 @@ export const Header: React.FC = () => {
         </div>
 
         {/* Mobile Menu Toggle */}
-        <button className="md:hidden text-white z-50" onClick={toggleMobileMenu} aria-label="Menu">
+        <button className={`md:hidden z-50 ${contentColorClass}`} onClick={toggleMobileMenu} aria-label="Menu">
           {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
       </div>

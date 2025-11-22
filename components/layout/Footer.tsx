@@ -1,12 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Globe, Sun, Moon, Monitor } from 'lucide-react';
-import { useUIStore, useThemeStore } from '../../store';
+import { useThemeStore } from '../../store';
 import { Theme, Language } from '../../types';
 import { useLanguage } from '../../hooks/useLanguage';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export const Footer: React.FC = () => {
-  // CORREÇÃO: Usando useThemeStore para o tema
   const { theme, setTheme } = useThemeStore();
   const { language, setLanguage, t } = useLanguage();
   const [mounted, setMounted] = useState(false);
@@ -32,7 +31,8 @@ export const Footer: React.FC = () => {
   ];
 
   return (
-    <footer className="bg-[#1a1a1a] text-white pt-20 pb-10 border-t border-white/10">
+    // ADICIONADO pb-32 para dar espaço ao botão flutuante do chat
+    <footer className="bg-[#1a1a1a] text-white pt-20 pb-32 border-t border-white/10">
       <div className="container mx-auto px-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
           {/* Column 1: Brand & Bio */}
@@ -57,8 +57,8 @@ export const Footer: React.FC = () => {
           <div>
             <h4 className="font-bold mb-6 text-sm uppercase tracking-widest text-gray-500">{t('footer.legal')}</h4>
             <ul className="space-y-3 text-sm text-gray-300">
-              <li><a href="#" className="hover:text-accent transition-colors">Terms of Service</a></li>
-              <li><a href="#" className="hover:text-accent transition-colors">Privacy Policy</a></li>
+              <li><a href="#" className="hover:text-accent transition-colors">{t('footer.terms')}</a></li>
+              <li><a href="#" className="hover:text-accent transition-colors">{t('footer.privacy')}</a></li>
             </ul>
           </div>
 
@@ -147,7 +147,7 @@ export const Footer: React.FC = () => {
 
         <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-gray-600">
           <p>&copy; 2025 Melissa Pelussi. {t('footer.rights')}</p>
-          <p>Designed by THEBALDI</p>
+          <p>{t('footer.designed')}</p>
         </div>
       </div>
     </footer>

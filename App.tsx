@@ -9,9 +9,11 @@ import { Cart } from './components/Cart';
 import { Newsletter } from './components/Newsletter';
 import { motion } from 'framer-motion';
 import { Theme } from './types';
+import { useLanguage } from './hooks/useLanguage';
 
 const App: React.FC = () => {
   const { theme } = useThemeStore();
+  const { t } = useLanguage();
 
   // Setup Theme
   useEffect(() => {
@@ -44,7 +46,7 @@ const App: React.FC = () => {
                         transition={{ duration: 0.8 }}
                         className="relative"
                     >
-                        {/* Imagem FIXA e elegante da artista/arte (não usa mais Picsum aleatório) */}
+                        {/* Imagem FIXA e elegante da artista/arte */}
                         <div className="aspect-[3/4] w-full overflow-hidden rounded-sm shadow-2xl">
                              <img 
                                 src="https://images.unsplash.com/photo-1551024709-8f23befc6f87?q=80&w=1000&auto=format&fit=crop" 
@@ -62,13 +64,13 @@ const App: React.FC = () => {
                          transition={{ duration: 0.8, delay: 0.2 }}
                          className="space-y-6"
                     >
-                        <h2 className="font-serif text-4xl md:text-5xl text-primary dark:text-white">About the Artist</h2>
+                        <h2 className="font-serif text-4xl md:text-5xl text-primary dark:text-white">{t('about.title')}</h2>
                         <div className="w-20 h-1 bg-accent" />
                         <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-                            Melissa Pelussi, known as "Meeh", is a Luxembourg-based contemporary artist whose work transcends traditional boundaries.
+                            {t('about.bio_p1')}
                         </p>
                         <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-                            Her collections explore the raw emotions of abstract expressionism combined with the precision of modern digital art. Each piece is a unique journey into color and form.
+                            {t('about.bio_p2')}
                         </p>
                     </motion.div>
                 </div>
