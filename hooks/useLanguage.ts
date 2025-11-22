@@ -4,9 +4,7 @@ import { dictionaries } from '../lib/i18n/translations';
 import { Language } from '../types';
 
 export const useLanguage = () => {
-  // Use selectors to avoid re-rendering when other unrelated store parts change
-  const language = useUIStore((state) => state.language);
-  const setLanguage = useUIStore((state) => state.setLanguage);
+  const { language, setLanguage } = useUIStore();
 
   // Set cookie when language changes to support future middleware and persistency
   useEffect(() => {
@@ -17,7 +15,7 @@ export const useLanguage = () => {
     }
   }, [language]);
 
-  // Stable translation function
+  // Wrap t in useCallback so the function reference remains stable unless language changes
   const t = useCallback((key: string): string => {
     // @ts-ignore
     return dictionaries[language]?.[key] || key;

@@ -14,27 +14,20 @@ export const Chatbot: React.FC = () => {
   const [hasInteracted, setHasInteracted] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  // Ref para rastrear o texto atual de boas-vindas e evitar atualizações desnecessárias
-  const currentWelcomeTextRef = useRef<string>('');
+  const initializedRef = useRef(false);
 
-  // Lógica blindada contra loops infinitos
+  // Reset/Update Welcome message when language changes if user hasn't interacted
   useEffect(() => {
-    if (hasInteracted) return;
-
-    const welcomeText = t('chat.welcome');
-    
-    // Só atualiza se o texto realmente mudou (troca de idioma)
-    if (currentWelcomeTextRef.current !== welcomeText) {
-        currentWelcomeTextRef.current = welcomeText;
+    if (!hasInteracted) {
+        // Only update if the text actually needs to change to avoid render loops
+        const welcomeText = t('chat.welcome');
         
         setMessages(prev => {
-            // Se já existe uma mensagem de boas-vindas, atualiza o texto
-            if (prev.length > 0 && prev[0].id === 'welcome') {
-                return [{ ...prev[0], text: welcomeText }];
+            // If the last message is already the correct welcome message, don't update state
+            if (prev.length > 0 && prev[0].id === 'welcome' && prev[0].text === welcomeText) {
+                return prev;
             }
-            // Se não existe, cria
             return [{ 
                 id: 'welcome', 
                 role: 'model', 
@@ -43,7 +36,7 @@ export const Chatbot: React.FC = () => {
             }];
         });
     }
-  }, [t, hasInteracted]); // Removido 'language' pois 't' já encapsula a mudança
+  }, [language, hasInteracted, t]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
