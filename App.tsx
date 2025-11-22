@@ -6,7 +6,6 @@ import { Hero } from './components/Hero';
 import { Catalog } from './components/Catalog';
 import { Chatbot } from './components/Chatbot';
 import { Cart } from './components/Cart';
-import { Newsletter } from './components/sections/Newsletter'; // Import New Component
 import { motion } from 'framer-motion';
 import { Theme } from './types';
 
@@ -72,8 +71,23 @@ const App: React.FC = () => {
             {/* Catalog Section */}
             <Catalog />
 
-            {/* Award-Winning Newsletter Section */}
-            <Newsletter />
+            {/* Newsletter Section */}
+            <section className="py-24 bg-accent/10 dark:bg-black">
+                <div className="container mx-auto px-6 text-center max-w-2xl">
+                    <h2 className="font-serif text-3xl mb-4 text-primary dark:text-white">Join the Collector's Circle</h2>
+                    <p className="text-gray-500 mb-8">Subscribe to receive exclusive updates on new releases and exhibitions.</p>
+                    <form className="flex flex-col md:flex-row gap-4" onSubmit={(e) => e.preventDefault()}>
+                        <input 
+                            type="email" 
+                            placeholder="Enter your email" 
+                            className="flex-1 px-6 py-4 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 outline-none focus:border-accent transition-colors dark:text-white"
+                        />
+                        <button className="px-8 py-4 bg-primary dark:bg-white text-white dark:text-primary font-bold uppercase tracking-widest hover:bg-accent transition-colors">
+                            Subscribe
+                        </button>
+                    </form>
+                </div>
+            </section>
         </main>
 
         <Footer />

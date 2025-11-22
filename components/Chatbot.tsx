@@ -19,22 +19,12 @@ export const Chatbot: React.FC = () => {
   // Reset/Update Welcome message when language changes if user hasn't interacted
   useEffect(() => {
     if (!hasInteracted) {
-        // Check if the last message is already the welcome message in current language to avoid loops
-        const newWelcomeText = t('chat.welcome');
-        
-        setMessages(prev => {
-            // If we already have a welcome message with the same text, don't update state
-            if (prev.length > 0 && prev[0].id === 'welcome' && prev[0].text === newWelcomeText) {
-                return prev;
-            }
-            
-            return [{ 
-                id: 'welcome', 
-                role: 'model', 
-                text: newWelcomeText, 
-                timestamp: Date.now() 
-            }];
-        });
+        setMessages([{ 
+            id: 'welcome', 
+            role: 'model', 
+            text: t('chat.welcome'), 
+            timestamp: Date.now() 
+        }]);
     }
   }, [language, hasInteracted, t]);
 
@@ -92,6 +82,7 @@ export const Chatbot: React.FC = () => {
     <>
       {/* Floating Button */}
       <motion.button
+        // Alterado: dark:bg-accent para manter consistência e visibilidade, em vez de branco
         className="fixed bottom-8 left-8 z-40 w-16 h-16 bg-primary text-white dark:bg-accent dark:text-white rounded-full shadow-2xl flex items-center justify-center border-2 border-accent hover:brightness-110 transition-all"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
