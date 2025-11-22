@@ -22,11 +22,12 @@ export const Hero: React.FC = () => {
         className="absolute inset-0 w-full h-full z-0"
         style={{ y, scale, filter: `blur(${blur})` }}
       >
-        {/* Using a high quality placeholder abstract art */}
+        {/* Using a high quality placeholder abstract art with eager loading */}
         <img 
             src="https://user-gen-media-assets.s3.amazonaws.com/gemini_images/8faf1f51-ea46-4fff-a971-7c27a89fb94a.png" 
             alt="Art Background" 
             className="w-full h-full object-cover"
+            loading="eager"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-primary" />
       </motion.div>

@@ -1,15 +1,24 @@
+'use client';
+
 import React, { useEffect } from 'react';
-import { useUIStore, useThemeStore } from './store';
+import dynamic from 'next/dynamic';
+import { useThemeStore } from './store';
 import { Header } from './components/layout/Header';
 import { Footer } from './components/layout/Footer';
 import { Hero } from './components/Hero';
 import { Catalog } from './components/Catalog';
-import { Chatbot } from './components/Chatbot';
-import { Cart } from './components/Cart';
 import { Newsletter } from './components/Newsletter';
 import { motion } from 'framer-motion';
 import { Theme } from './types';
 import { useLanguage } from './hooks/useLanguage';
+
+// Componentes pesados ou interativos carregados sob demanda para não travar a renderização inicial
+const Cart = dynamic(() => import('./components/Cart').then(mod => mod.Cart), { 
+  ssr: false 
+});
+const Chatbot = dynamic(() => import('./components/Chatbot').then(mod => mod.Chatbot), { 
+  ssr: false 
+});
 
 const App: React.FC = () => {
   const { theme } = useThemeStore();
@@ -85,7 +94,7 @@ const App: React.FC = () => {
 
         <Footer />
 
-        {/* Global Overlays */}
+        {/* Global Overlays - Carregados de forma Lazy */}
         <Cart />
         <Chatbot />
     </div>
