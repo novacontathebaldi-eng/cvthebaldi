@@ -164,7 +164,7 @@ export const Newsletter: React.FC = () => {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     disabled={isPending}
-                    className="group relative order-1 md:order-2 px-8 py-4 bg-primary dark:bg-white text-white dark:text-primary font-bold uppercase tracking-[0.2em] text-xs rounded-sm overflow-hidden"
+                    className="group relative order-1 md:order-2 px-8 py-4 bg-primary dark:bg-white text-white dark:text-black font-bold uppercase tracking-[0.2em] text-xs rounded-sm overflow-hidden"
                   >
                     <span className="relative z-10 flex items-center gap-4">
                       {isPending ? t('newsletter.sending') : t('newsletter.button')}
