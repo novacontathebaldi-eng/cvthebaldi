@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence, useInView, Variants } from 'framer-motion';
+import { motion, AnimatePresence, useInView } from 'framer-motion';
 import { ArrowRight, Check, Loader2 } from 'lucide-react';
 import { useLanguage } from '../../hooks/useLanguage';
 import { subscribeToNewsletter } from '../../actions/newsletter';
@@ -50,7 +50,7 @@ export const Newsletter: React.FC = () => {
     }
   };
 
-  const containerVariants: Variants = {
+  const containerVariants = {
     hidden: { opacity: 0, y: 50 },
     visible: { 
         opacity: 1, 
@@ -144,7 +144,7 @@ export const Newsletter: React.FC = () => {
                                         <Loader2 size={32} className="animate-spin text-accent" />
                                     ) : (
                                         <div className="group-hover:translate-x-2 transition-transform duration-300 bg-accent rounded-full p-3 md:p-4 text-white shadow-lg hover:shadow-accent/50">
-                                            <ArrowRight className="w-6 h-6 md:w-8 md:h-8" />
+                                            <ArrowRight size={24} md:size={32} />
                                         </div>
                                     )}
                                 </motion.button>

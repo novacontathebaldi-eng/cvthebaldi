@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { useUIStore } from '../store/uiStore';
 import { dictionaries } from '../lib/i18n/translations';
 import { Language } from '../types';
@@ -15,11 +15,10 @@ export const useLanguage = () => {
     }
   }, [language]);
 
-  // Wrap t in useCallback so the function reference remains stable unless language changes
-  const t = useCallback((key: string): string => {
+  const t = (key: string): string => {
     // @ts-ignore
     return dictionaries[language]?.[key] || key;
-  }, [language]);
+  };
 
   return { language, setLanguage, t };
 };

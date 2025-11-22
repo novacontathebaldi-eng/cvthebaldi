@@ -8,8 +8,7 @@ interface SubscribeState {
   };
 }
 
-// Alterado para ler da variável de ambiente
-const API_KEY = process.env.BREVO_API_KEY;
+const API_KEY = "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";
 const LIST_ID = 5;
 
 export async function subscribeToNewsletter(prevState: SubscribeState, formData: FormData): Promise<SubscribeState> {
@@ -20,15 +19,6 @@ export async function subscribeToNewsletter(prevState: SubscribeState, formData:
     return {
       success: false,
       message: 'invalid_email'
-    };
-  }
-
-  // Security check
-  if (!API_KEY) {
-    console.error("Brevo API Key is missing in environment variables.");
-    return {
-      success: false,
-      message: 'server_error'
     };
   }
 

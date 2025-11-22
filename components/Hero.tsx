@@ -24,7 +24,7 @@ export const Hero: React.FC = () => {
       >
         {/* Using a high quality placeholder abstract art */}
         <img 
-            src="https://user-gen-media-assets.s3.amazonaws.com/gemini_images/8faf1f51-ea46-4fff-a971-7c27a89fb94a.png" 
+            src="https://picsum.photos/seed/art9/1920/1080" 
             alt="Art Background" 
             className="w-full h-full object-cover"
         />
