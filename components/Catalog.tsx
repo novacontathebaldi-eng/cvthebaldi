@@ -75,30 +75,34 @@ export const Catalog: React.FC = () => {
     };
 
     return (
-        <section id="catalog" className="min-h-screen py-20 bg-light dark:bg-[#252525]">
-            <div className="container mx-auto px-6">
-                
-                {/* Tabs - Adjusted top position to align perfectly with header (top-16 = 64px) */}
-                <div className="flex flex-wrap justify-center gap-8 mb-16 sticky top-16 z-40 bg-light/80 dark:bg-[#252525]/80 backdrop-blur-md py-4 transition-all duration-300">
-                    {tabs.map((tab) => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                            className={`relative pb-2 text-sm uppercase tracking-widest transition-colors ${
-                                activeTab === tab.id ? 'text-accent' : 'text-gray-500 hover:text-primary dark:hover:text-white'
-                            }`}
-                        >
-                            {tab.label}
-                            {activeTab === tab.id && (
-                                <motion.div 
-                                    layoutId="underline"
-                                    className="absolute bottom-0 left-0 w-full h-[2px] bg-accent"
-                                />
-                            )}
-                        </button>
-                    ))}
+        <section id="catalog" className="min-h-screen bg-light dark:bg-[#252525] pb-20">
+            {/* Sticky Tabs Bar - Full Width, Matches Header Style */}
+            <div className="sticky top-16 z-40 w-full bg-primary/80 backdrop-blur-md border-b border-white/10 transition-all duration-300 shadow-md">
+                <div className="container mx-auto px-6 py-4">
+                    <div className="flex flex-wrap justify-center gap-8">
+                        {tabs.map((tab) => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`relative pb-2 text-sm uppercase tracking-widest transition-colors ${
+                                    activeTab === tab.id ? 'text-accent' : 'text-white/70 hover:text-white'
+                                }`}
+                            >
+                                {tab.label}
+                                {activeTab === tab.id && (
+                                    <motion.div 
+                                        layoutId="underline"
+                                        className="absolute bottom-0 left-0 w-full h-[2px] bg-accent"
+                                    />
+                                )}
+                            </button>
+                        ))}
+                    </div>
                 </div>
+            </div>
 
+            <div className="container mx-auto px-6 py-12">
+                
                 {/* Error State */}
                 {error && (
                     <div className="flex flex-col items-center justify-center py-20 text-red-500">
