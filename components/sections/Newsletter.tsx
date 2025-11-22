@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence, useInView, Variants } from 'framer-motion';
 import { ArrowRight, Check, Loader2 } from 'lucide-react';
 import { useLanguage } from '../../hooks/useLanguage';
@@ -6,16 +6,14 @@ import { subscribeToNewsletter } from '../../actions/newsletter';
 
 // This component uses a "Magnetic Minimalist" design approach
 export const Newsletter: React.FC = () => {
-  const { t, isMounted } = useLanguage();
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [feedbackKey, setFeedbackKey] = useState('');
   
   const ref = React.useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "0px 0px -100px 0px" });
-
-  // Prevent hydration flicker for visual elements
-  if (!isMounted) return null;
+  // Alterado para "0px" para disparar assim que qualquer parte do componente tocar a tela
+  const isInView = useInView(ref, { once: true, margin: "0px" });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,7 +24,6 @@ export const Newsletter: React.FC = () => {
     const formData = new FormData();
     formData.append('email', email);
 
-    // Simulate network delay for smoother animation on super fast connections
     const minDelay = new Promise(resolve => setTimeout(resolve, 800));
     
     try {
@@ -41,7 +38,6 @@ export const Newsletter: React.FC = () => {
         setStatus('error');
         setFeedbackKey(result.message === 'invalid_email' ? 'newsletter.invalid' : 'newsletter.error');
         
-        // Reset to idle after delay so they can try again
         setTimeout(() => {
             setStatus('idle');
         }, 3000);
@@ -54,7 +50,7 @@ export const Newsletter: React.FC = () => {
   };
 
   const containerVariants: Variants = {
-    hidden: { opacity: 0, y: 50 },
+    hidden: { opacity: 1, y: 0 }, // Force visible initially to prevent black hole bug
     visible: { 
         opacity: 1, 
         y: 0,
@@ -65,19 +61,19 @@ export const Newsletter: React.FC = () => {
   return (
     <section 
         ref={ref}
-        className="relative py-32 md:py-48 px-6 bg-[#F8F8F8] dark:bg-black overflow-hidden transition-colors duration-500"
+        className="relative py-32 md:py-48 px-6 bg-[#F8F8F8] dark:bg-black overflow-hidden transition-colors duration-500 min-h-[50vh]"
     >
       <div className="container mx-auto max-w-4xl relative z-10">
         <motion.div
             variants={containerVariants}
             initial="hidden"
-            animate={isInView ? "visible" : "hidden"}
+            whileInView="visible"
+            viewport={{ once: true }}
             className="flex flex-col items-start w-full"
         >
             {/* Section Label */}
             <motion.span 
                 className="text-accent text-xs font-bold tracking-[0.25em] uppercase mb-8"
-                variants={{ hidden: { opacity: 0 }, visible: { opacity: 1 } }}
             >
                 {t('newsletter.title')}
             </motion.span>
@@ -111,7 +107,7 @@ export const Newsletter: React.FC = () => {
                     ) : (
                         <motion.div
                             key="form"
-                            initial={{ opacity: 0 }}
+                            initial={{ opacity: 1 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0, y: -20, filter: "blur(10px)" }}
                             className="w-full"
