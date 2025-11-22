@@ -2,7 +2,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // output: 'export' removed to allow Server Actions
+  output: 'export',
   images: {
     unoptimized: true,
     remotePatterns: [
