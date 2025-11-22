@@ -76,8 +76,8 @@ export const Catalog: React.FC = () => {
 
     return (
         <section id="catalog" className="min-h-screen bg-light dark:bg-[#252525] pb-20">
-            {/* Sticky Tabs Bar - Full Width, Matches Header Style */}
-            <div className="sticky top-16 z-40 w-full bg-primary/80 backdrop-blur-md border-b border-white/10 transition-all duration-300 shadow-md">
+            {/* Sticky Tabs Bar - Cores ajustadas para contraste no Light e Dark mode */}
+            <div className="sticky top-16 z-40 w-full bg-white/90 dark:bg-[#1e1e1e]/90 backdrop-blur-md border-b border-gray-200 dark:border-white/10 transition-all duration-300 shadow-sm">
                 <div className="container mx-auto px-6 py-4">
                     <div className="flex flex-wrap justify-center gap-8">
                         {tabs.map((tab) => (
@@ -85,7 +85,9 @@ export const Catalog: React.FC = () => {
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
                                 className={`relative pb-2 text-sm uppercase tracking-widest transition-colors ${
-                                    activeTab === tab.id ? 'text-accent' : 'text-white/70 hover:text-white'
+                                    activeTab === tab.id 
+                                        ? 'text-accent font-semibold' 
+                                        : 'text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-white'
                                 }`}
                             >
                                 {tab.label}
