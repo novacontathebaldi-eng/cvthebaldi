@@ -3,9 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "clean-legacy": "node -e \"try { const fs = require('fs'); ['index.html', 'index.tsx', 'vite.config.ts'].forEach(f => { if(fs.existsSync(f)) { fs.unlinkSync(f); console.log('Deleted legacy file:', f); } }); } catch(e) { console.log('Cleanup error (ignored):', e.message) }\"",
-    "dev": "npm run clean-legacy && next dev",
-    "prebuild": "npm run clean-legacy",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"

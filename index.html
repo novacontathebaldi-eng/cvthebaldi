@@ -1,33 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configuring Art Store...</title>
-    <style>
-        body {
-            background-color: #121212;
-            color: #D4AF37;
-            font-family: serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            text-align: center;
-        }
-        .loader {
-            border: 3px solid #333;
-            border-top: 3px solid #D4AF37;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    </style>
 <script type="importmap">
 {
   "imports": {
@@ -52,24 +22,9 @@
   }
 }
 </script>
+<!-- 
+ARQUIVO IGNORADO PELO NEXT.JS
+Este arquivo deve ser ignorado em favor do app/layout.tsx
+-->
 <link rel="stylesheet" href="/index.css">
-</head>
-<body>
-    <div class="loader"></div>
-    <h1>Atualizando Sistema...</h1>
-    <p>Se você está vendo esta tela, o Next.js está carregando ou os arquivos antigos ainda estão no cache.</p>
-    <p style="font-size: 0.8rem; color: #666;">Tente recarregar a página em 30 segundos.</p>
-    
-    <script>
-        // Tenta redirecionar para a rota do Next.js se o arquivo estático for servido por engano
-        setTimeout(() => {
-            if(window.location.pathname === '/index.html') {
-                window.location.href = '/';
-            } else {
-                window.location.reload();
-            }
-        }, 3000);
-    </script>
 <script type="module" src="/index.tsx"></script>
-</body>
-</html>
