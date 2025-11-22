@@ -11,7 +11,6 @@ export const Hero: React.FC = () => {
   });
 
   const y = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
-  const opacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
   const scale = useTransform(scrollYProgress, [0, 1], [1, 1.2]);
   const blur = useTransform(scrollYProgress, [0, 1], ["0px", "10px"]);
 
@@ -32,14 +31,11 @@ export const Hero: React.FC = () => {
       </motion.div>
 
       {/* Content */}
-      <motion.div 
-        className="relative z-10 text-center px-6"
-        style={{ opacity }}
-      >
+      <div className="relative z-10 text-center px-6">
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
+            transition={{ duration: 0.8 }}
         >
             <h2 className="text-accent text-sm md:text-base tracking-[0.3em] uppercase mb-4">
                 {t('hero.subtitle')}
@@ -50,7 +46,7 @@ export const Hero: React.FC = () => {
             className="font-serif text-5xl md:text-7xl lg:text-8xl text-white mb-8 font-bold tracking-tight"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
         >
             {t('hero.title')}
         </motion.h1>
@@ -59,14 +55,14 @@ export const Hero: React.FC = () => {
             className="px-8 py-4 border border-accent text-accent hover:bg-accent hover:text-white transition-all duration-300 uppercase tracking-widest text-sm rounded-sm"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.6 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
             onClick={() => {
                 document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' });
             }}
         >
             {t('hero.cta')}
         </motion.button>
-      </motion.div>
+      </div>
       
       {/* Scroll Indicator */}
       <motion.div 

@@ -20,15 +20,12 @@ export const Header: React.FC = () => {
   }, []);
 
   return (
-    <motion.header
+    <header
       className={`fixed top-0 w-full z-50 transition-all duration-300 border-b border-transparent ${
         scrolled 
           ? 'bg-[#2C2C2C]/95 dark:bg-black/90 backdrop-blur-md border-white/10 py-3 shadow-md' 
           : 'bg-transparent py-6'
       }`}
-      initial={{ y: -100 }}
-      animate={{ y: 0 }}
-      transition={{ duration: 0.5 }}
     >
       <div className="container mx-auto px-6 flex justify-between items-center">
         {/* Logo */}
@@ -76,6 +73,6 @@ export const Header: React.FC = () => {
           {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
       </div>
-    </motion.header>
+    </header>
   );
 };
