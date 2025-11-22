@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuring Art Store...</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #D4AF37;
+            font-family: serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            text-align: center;
+        }
+        .loader {
+            border: 3px solid #333;
+            border-top: 3px solid #D4AF37;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "framer-motion": "https://aistudiocdn.com/framer-motion@^12.23.24",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0",
+    "tailwindcss": "https://aistudiocdn.com/tailwindcss@^4.1.17",
+    "next": "https://aistudiocdn.com/next@^16.0.3",
+    "next/": "https://aistudiocdn.com/next@^16.0.3/",
+    "firebase/": "https://aistudiocdn.com/firebase@^12.6.0/",
+    "@tanstack/react-query": "https://aistudiocdn.com/@tanstack/react-query@^5.90.10",
+    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.84.0",
+    "clsx": "https://aistudiocdn.com/clsx@^2.1.1",
+    "tailwind-merge": "https://aistudiocdn.com/tailwind-merge@^3.4.0",
+    "zustand": "https://aistudiocdn.com/zustand@^5.0.8",
+    "zustand/": "https://aistudiocdn.com/zustand@^5.0.8/",
+    "@radix-ui/react-select": "https://aistudiocdn.com/@radix-ui/react-select@^2.2.6",
+    "@radix-ui/react-dialog": "https://aistudiocdn.com/@radix-ui/react-dialog@^1.1.15",
+    "@studio-freight/lenis": "https://aistudiocdn.com/@studio-freight/lenis@^1.0.42"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+    <div class="loader"></div>
+    <h1>Atualizando Sistema...</h1>
+    <p>Se você está vendo esta tela, o Next.js está carregando ou os arquivos antigos ainda estão no cache.</p>
+    <p style="font-size: 0.8rem; color: #666;">Tente recarregar a página em 30 segundos.</p>
+    
+    <script>
+        // Tenta redirecionar para a rota do Next.js se o arquivo estático for servido por engano
+        setTimeout(() => {
+            if(window.location.pathname === '/index.html') {
+                window.location.href = '/';
+            } else {
+                window.location.reload();
+            }
+        }, 3000);
+    </script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>
