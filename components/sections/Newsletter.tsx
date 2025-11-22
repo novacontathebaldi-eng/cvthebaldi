@@ -6,13 +6,16 @@ import { subscribeToNewsletter } from '../../actions/newsletter';
 
 // This component uses a "Magnetic Minimalist" design approach
 export const Newsletter: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, isMounted } = useLanguage();
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [feedbackKey, setFeedbackKey] = useState('');
   
   const ref = React.useRef(null);
   const isInView = useInView(ref, { once: true, margin: "0px 0px -100px 0px" });
+
+  // Prevent hydration flicker for visual elements
+  if (!isMounted) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

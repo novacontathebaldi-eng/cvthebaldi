@@ -1,8 +1,7 @@
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // output: 'export' removido para suportar Server Actions
+  // Note: output: 'export' must be REMOVED to support Server Actions on Vercel
   images: {
     unoptimized: true,
     remotePatterns: [
@@ -12,7 +11,7 @@ const nextConfig = {
       { protocol: 'https', hostname: 'flagcdn.com' },
     ],
   },
-  // SPA-like behavior optimization
+  // Ensure no trailing slash issues
   trailingSlash: false,
 };
 
