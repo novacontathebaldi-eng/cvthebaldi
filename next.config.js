@@ -1,8 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Output standalone ajuda em alguns ambientes serverless, mas o padrão Vercel é robusto.
-  // Mantendo simples para evitar erros de configuração.
+  output: 'standalone',
+  distDir: '.next',
+  // trailingSlash ajuda o Vercel a diferenciar arquivos estáticos de rotas dinâmicas
+  trailingSlash: true,
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'picsum.photos' },
@@ -14,11 +16,9 @@ const nextConfig = {
     ],
   },
   typescript: {
-    // Ignora erros de TS no build para evitar que arquivos legados quebrem o deploy
     ignoreBuildErrors: true,
   },
   eslint: {
-    // Ignora erros de Lint no build
     ignoreDuringBuilds: true,
   },
 };

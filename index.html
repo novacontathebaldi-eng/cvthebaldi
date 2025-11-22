@@ -1,3 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="refresh" content="0;url=/" />
+<script>
+    // Força recarregamento ignorando cache se estiver preso aqui
+    if (window.location.pathname === '/index.html') {
+        window.location.href = '/';
+    }
+</script>
 <script type="importmap">
 {
   "imports": {
@@ -22,9 +32,9 @@
   }
 }
 </script>
-<!-- 
-ARQUIVO IGNORADO PELO NEXT.JS
-Este arquivo deve ser ignorado em favor do app/layout.tsx
--->
 <link rel="stylesheet" href="/index.css">
+</head>
+<body>
 <script type="module" src="/index.tsx"></script>
+</body>
+</html>
