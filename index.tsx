@@ -1,15 +1,5 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App';
-
-const rootElement = document.getElementById('root');
-if (!rootElement) {
-  throw new Error("Could not find root element to mount to");
-}
-
-const root = ReactDOM.createRoot(rootElement);
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+// ARQUIVO DESATIVADO
+// Este projeto utiliza Next.js App Router.
+// A lógica de inicialização está em app/layout.tsx e app/providers.tsx.
+// Este arquivo pode ser excluído futuramente.
+export default function Null() { return null; }

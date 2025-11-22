@@ -29,6 +29,11 @@ export const metadata: Metadata = {
   keywords: ['art', 'contemporary art', 'luxembourg', 'abstract', 'digital art', 'melissa pelussi'],
   authors: [{ name: 'Melissa Pelussi' }],
   creator: 'Melissa Pelussi',
+  // Ícone fixo para não piscar. Usando um emoji de arte como placeholder estável ou um link estático confiável
+  icons: {
+    icon: 'https://cdn-icons-png.flaticon.com/512/5352/5352161.png', // Ícone de paleta de arte dourada estável
+    apple: 'https://cdn-icons-png.flaticon.com/512/5352/5352161.png',
+  },
   openGraph: {
     type: 'website',
     locale: 'fr_LU',
@@ -38,7 +43,7 @@ export const metadata: Metadata = {
     siteName: 'Melissa Pelussi Art',
     images: [
       {
-        url: 'https://picsum.photos/seed/og/1200/630',
+        url: 'https://picsum.photos/seed/og/1200/630', // Imagem OG pode ser dinâmica, mas idealmente fixa
         width: 1200,
         height: 630,
         alt: 'Melissa Pelussi Art',
@@ -66,7 +71,7 @@ export default function RootLayout({
   return (
     <html lang="fr" className={`${inter.variable} ${playfair.variable}`} suppressHydrationWarning>
       <body 
-        className="bg-light dark:bg-primary text-primary dark:text-white transition-colors duration-300 overflow-x-hidden font-sans"
+        className="bg-light dark:bg-primary text-primary dark:text-white transition-colors duration-300 overflow-x-hidden font-sans min-h-screen flex flex-col"
         suppressHydrationWarning
       >
         <Providers>
