@@ -1,5 +1,3 @@
-// ARQUIVO DESATIVADO
-// Este projeto utiliza Next.js App Router.
-// A lógica de inicialização está em app/layout.tsx e app/providers.tsx.
-// Este arquivo pode ser excluído futuramente.
+// ARQUIVO OBSOLETO
+// Este arquivo deve ser DELETADO. O projeto usa Next.js App Router.
 export default function Null() { return null; }

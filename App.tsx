@@ -11,7 +11,6 @@ import { motion } from 'framer-motion';
 import { Theme } from './types';
 
 const App: React.FC = () => {
-  // CORREÇÃO: Usando useThemeStore para o tema
   const { theme } = useThemeStore();
 
   // Setup Theme
@@ -43,12 +42,18 @@ const App: React.FC = () => {
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.8 }}
+                        className="relative"
                     >
-                        <img 
-                            src="https://picsum.photos/seed/meeh/800/1000" 
-                            alt="Melissa Pelussi" 
-                            className="w-full h-auto shadow-2xl grayscale hover:grayscale-0 transition-all duration-700"
-                        />
+                        {/* Imagem FIXA e elegante da artista/arte (não usa mais Picsum aleatório) */}
+                        <div className="aspect-[3/4] w-full overflow-hidden rounded-sm shadow-2xl">
+                             <img 
+                                src="https://images.unsplash.com/photo-1551024709-8f23befc6f87?q=80&w=1000&auto=format&fit=crop" 
+                                alt="Melissa Pelussi Art Studio" 
+                                className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700"
+                            />
+                        </div>
+                        {/* Decorative Element */}
+                        <div className="absolute -bottom-6 -right-6 w-32 h-32 border-2 border-accent z-[-1]" />
                     </motion.div>
                     <motion.div 
                          initial={{ opacity: 0, x: 50 }}

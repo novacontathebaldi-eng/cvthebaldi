@@ -29,9 +29,9 @@ export const metadata: Metadata = {
   keywords: ['art', 'contemporary art', 'luxembourg', 'abstract', 'digital art', 'melissa pelussi'],
   authors: [{ name: 'Melissa Pelussi' }],
   creator: 'Melissa Pelussi',
-  // Ícone fixo para não piscar. Usando um emoji de arte como placeholder estável ou um link estático confiável
   icons: {
-    icon: 'https://cdn-icons-png.flaticon.com/512/5352/5352161.png', // Ícone de paleta de arte dourada estável
+    // Ícone estático para evitar "piscar" na aba do navegador
+    icon: 'https://cdn-icons-png.flaticon.com/512/5352/5352161.png', 
     apple: 'https://cdn-icons-png.flaticon.com/512/5352/5352161.png',
   },
   openGraph: {
@@ -43,23 +43,12 @@ export const metadata: Metadata = {
     siteName: 'Melissa Pelussi Art',
     images: [
       {
-        url: 'https://picsum.photos/seed/og/1200/630', // Imagem OG pode ser dinâmica, mas idealmente fixa
+        url: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87', 
         width: 1200,
         height: 630,
         alt: 'Melissa Pelussi Art',
       },
     ],
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
-    },
   },
 };
 
