@@ -24,7 +24,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onClick, inde
 
   return (
     <motion.div
-      layout
+      layoutId={`product-${product.id}`}
       initial={{ opacity: 0, y: 50 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-50px" }}
