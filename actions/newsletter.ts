@@ -8,7 +8,7 @@ interface SubscribeState {
   };
 }
 
-const API_KEY = "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";
+const API_KEY = "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";
 const LIST_ID = 5;
 
 export async function subscribeToNewsletter(prevState: SubscribeState, formData: FormData): Promise<SubscribeState> {
