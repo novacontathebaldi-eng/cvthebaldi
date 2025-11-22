@@ -30,6 +30,11 @@ export const dictionaries = {
     'chat.online': 'En ligne',
     'common.search': 'Rechercher',
     'common.close': 'Fermer',
+    'newsletter.title': 'Rejoignez le Cercle',
+    'newsletter.desc': 'Abonnez-vous pour recevoir des mises à jour exclusives sur les nouvelles sorties, les expositions privées et les actualités artistiques.',
+    'newsletter.placeholder': 'Votre adresse email',
+    'newsletter.button': 'S\'ABONNER',
+    'newsletter.disclaimer': 'En vous inscrivant, vous acceptez notre politique de confidentialité.',
   },
   [Language.EN]: {
     'nav.home': 'Home',
@@ -60,6 +65,11 @@ export const dictionaries = {
     'chat.online': 'Online',
     'common.search': 'Search',
     'common.close': 'Close',
+    'newsletter.title': 'Join the Circle',
+    'newsletter.desc': 'Subscribe to receive exclusive updates on new releases, private exhibitions, and art news.',
+    'newsletter.placeholder': 'Your email address',
+    'newsletter.button': 'SUBSCRIBE',
+    'newsletter.disclaimer': 'By signing up, you agree to our privacy policy.',
   },
   [Language.DE]: {
     'nav.home': 'Startseite',
@@ -90,6 +100,11 @@ export const dictionaries = {
     'chat.online': 'Online',
     'common.search': 'Suchen',
     'common.close': 'Schließen',
+    'newsletter.title': 'Treten Sie dem Kreis bei',
+    'newsletter.desc': 'Abonnieren Sie exklusive Updates zu Neuerscheinungen, privaten Ausstellungen und Kunstnachrichten.',
+    'newsletter.placeholder': 'Ihre E-Mail-Adresse',
+    'newsletter.button': 'ABONNIEREN',
+    'newsletter.disclaimer': 'Mit der Anmeldung stimmen Sie unserer Datenschutzerklärung zu.',
   },
   [Language.PT]: {
     'nav.home': 'Início',
@@ -120,5 +135,10 @@ export const dictionaries = {
     'chat.online': 'Online',
     'common.search': 'Buscar',
     'common.close': 'Fechar',
+    'newsletter.title': 'Junte-se ao Círculo',
+    'newsletter.desc': 'Inscreva-se para receber atualizações exclusivas sobre novos lançamentos, exposições privadas e notícias de arte.',
+    'newsletter.placeholder': 'Seu endereço de email',
+    'newsletter.button': 'INSCREVER-SE',
+    'newsletter.disclaimer': 'Ao se inscrever, você concorda com nossa política de privacidade.',
   }
 };

@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useUIStore, useThemeStore } from './store';
 import { Header } from './components/layout/Header';
@@ -7,7 +6,7 @@ import { Hero } from './components/Hero';
 import { Catalog } from './components/Catalog';
 import { Chatbot } from './components/Chatbot';
 import { Cart } from './components/Cart';
-import { Newsletter } from './components/sections/Newsletter';
+import { Newsletter } from './components/Newsletter';
 import { motion } from 'framer-motion';
 import { Theme } from './types';
 
@@ -73,7 +72,7 @@ const App: React.FC = () => {
             {/* Catalog Section */}
             <Catalog />
 
-            {/* Newsletter Section (Modernized) */}
+            {/* Newsletter Section */}
             <Newsletter />
         </main>
 
