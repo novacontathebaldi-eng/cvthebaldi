@@ -3,25 +3,30 @@ export enum ProductCategory {
   PAINTINGS = 'paintings',
   JEWELRY = 'jewelry',
   DIGITAL = 'digital',
-  PRINTS = 'prints'
+  PRINTS = 'prints',
+  SCULPTURES = 'sculptures'
 }
 
 export interface ProductTranslation {
   title: string;
   description: string;
-  tags: string[];
+  material?: string;
 }
 
 export interface Product {
   id: string;
-  translations: Record<string, ProductTranslation>; // Keyed by language code (fr, en, etc.)
+  translations: {
+    [key: string]: ProductTranslation; // 'fr' | 'en' | 'de' | 'pt'
+  };
   price: number;
   category: ProductCategory;
   images: string[];
-  available: boolean;
-  createdAt: string;
+  available: boolean; // Legacy support
+  status: 'available' | 'sold' | 'reserved';
+  stock: number;
   dimensions?: string;
-  medium?: string;
+  featured?: boolean;
+  createdAt: string; // ISO String
 }
 
 export interface CartItem extends Product {

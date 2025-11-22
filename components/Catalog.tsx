@@ -1,100 +1,115 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { ProductCategory, Product } from '../types';
-import { useCartStore, useUIStore } from '../store';
-import { Plus, AlertCircle } from 'lucide-react';
-import { getCollection } from '../lib/firebase/firestore';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Product, ProductCategory } from '../types/product';
+import { useProducts } from '../hooks/useProducts';
+import { useLanguage } from '../hooks/useLanguage';
+import { ProductCard } from './catalog/ProductCard';
+import { ProductModal } from './catalog/ProductModal';
+import { Loader2, AlertCircle } from 'lucide-react';
+import { cn } from '../lib/utils';
+
+// Define Order of Categories for One-Page Scroll
+const CATEGORY_ORDER = [
+    ProductCategory.PAINTINGS,
+    ProductCategory.SCULPTURES,
+    ProductCategory.JEWELRY,
+    ProductCategory.PRINTS,
+    ProductCategory.DIGITAL,
+];
 
 export const Catalog: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<ProductCategory>(ProductCategory.ALL);
-    const [products, setProducts] = useState<Product[]>([]);
-    const [displayProducts, setDisplayProducts] = useState<Product[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const { language } = useUIStore();
-    const { addItem } = useCartStore();
+    const { t } = useLanguage();
+    const { data: products, isLoading, error } = useProducts();
+    const [activeCategory, setActiveCategory] = useState<ProductCategory>(ProductCategory.PAINTINGS);
+    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+    
+    // Group Products by Category
+    const groupedProducts = React.useMemo(() => {
+        if (!products) return {};
+        return products.reduce((acc, product) => {
+            const cat = product.category;
+            if (!acc[cat]) acc[cat] = [];
+            acc[cat].push(product);
+            return acc;
+        }, {} as Record<ProductCategory, Product[]>);
+    }, [products]);
 
+    // Handle Scroll Spy to update Active Tab
     useEffect(() => {
-        const fetchProducts = async () => {
-            setLoading(true);
-            setError(null);
-            try {
-                const data = await getCollection('products');
-                // Map Firestore data to Product type ensuring type safety
-                const mappedProducts: Product[] = data.map((doc: any) => ({
-                    id: doc.id,
-                    price: doc.price || 0,
-                    category: doc.category || ProductCategory.PAINTINGS,
-                    available: doc.available ?? true,
-                    images: doc.images || [],
-                    createdAt: doc.createdAt,
-                    translations: doc.translations || {},
-                    dimensions: doc.dimensions,
-                    medium: doc.medium
-                }));
-                
-                setProducts(mappedProducts);
-            } catch (err) {
-                console.error("Error fetching products:", err);
-                setError("Unable to load the catalog. Please try again later.");
-            } finally {
-                setLoading(false);
+        const handleScroll = () => {
+            const headerOffset = 150; // Height of headers
+            
+            for (const cat of CATEGORY_ORDER) {
+                const element = document.getElementById(`category-${cat}`);
+                if (element) {
+                    const rect = element.getBoundingClientRect();
+                    if (rect.top <= headerOffset && rect.bottom >= headerOffset) {
+                        setActiveCategory(cat);
+                        break;
+                    }
+                }
             }
         };
-
-        fetchProducts();
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    useEffect(() => {
-        if (activeTab === ProductCategory.ALL) {
-            setDisplayProducts(products);
-        } else {
-            setDisplayProducts(products.filter(p => p.category === activeTab));
-        }
-    }, [activeTab, products]);
+    const scrollToCategory = (cat: ProductCategory) => {
+        setActiveCategory(cat);
+        const element = document.getElementById(`category-${cat}`);
+        if (element) {
+            const headerOffset = 120;
+            const elementPosition = element.getBoundingClientRect().top;
+            const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
 
-    const tabs = [
-        { id: ProductCategory.ALL, label: "Tout / All" },
-        { id: ProductCategory.PAINTINGS, label: "Peintures" },
-        { id: ProductCategory.JEWELRY, label: "Bijoux" },
-        { id: ProductCategory.DIGITAL, label: "Digital" },
-        { id: ProductCategory.PRINTS, label: "Impressions" },
-    ];
-
-    const containerVariants = {
-        hidden: { opacity: 0 },
-        visible: {
-            opacity: 1,
-            transition: { staggerChildren: 0.1 }
+            window.scrollTo({
+                top: offsetPosition,
+                behavior: 'smooth'
+            });
         }
     };
 
-    const itemVariants = {
-        hidden: { opacity: 0, y: 20 },
-        visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
-    };
+    if (isLoading) {
+        return (
+            <div className="min-h-[60vh] flex items-center justify-center bg-light dark:bg-[#252525]">
+                <Loader2 size={40} className="animate-spin text-accent" />
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+             <div className="min-h-[60vh] flex flex-col items-center justify-center text-red-500 bg-light dark:bg-[#252525]">
+                <AlertCircle size={48} className="mb-4" />
+                <p>Unable to load the gallery.</p>
+            </div>
+        );
+    }
 
     return (
-        <section id="catalog" className="min-h-screen bg-light dark:bg-[#252525] pb-20">
-            {/* Sticky Tabs Bar - Cores ajustadas para contraste no Light e Dark mode */}
-            <div className="sticky top-16 z-40 w-full bg-white/90 dark:bg-[#1e1e1e]/90 backdrop-blur-md border-b border-gray-200 dark:border-white/10 transition-all duration-300 shadow-sm">
-                <div className="container mx-auto px-6 py-4">
-                    <div className="flex flex-wrap justify-center gap-8">
-                        {tabs.map((tab) => (
+        <section id="catalog" className="min-h-screen bg-light dark:bg-[#252525] relative">
+            
+            {/* Sticky Tabs Header */}
+            <div className="sticky top-0 md:top-[88px] z-30 w-full bg-white/80 dark:bg-[#1e1e1e]/80 backdrop-blur-md border-b border-gray-200 dark:border-white/5 shadow-sm transition-all">
+                <div className="container mx-auto px-4 overflow-x-auto no-scrollbar">
+                    <div className="flex items-center justify-start md:justify-center gap-8 min-w-max py-4 px-2">
+                        {CATEGORY_ORDER.map((cat) => (
                             <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
-                                className={`relative pb-2 text-sm uppercase tracking-widest transition-colors ${
-                                    activeTab === tab.id 
-                                        ? 'text-accent font-semibold' 
-                                        : 'text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-white'
-                                }`}
+                                key={cat}
+                                onClick={() => scrollToCategory(cat)}
+                                className={cn(
+                                    "relative py-2 text-xs md:text-sm uppercase tracking-widest transition-colors font-medium",
+                                    activeCategory === cat 
+                                        ? "text-accent" 
+                                        : "text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-white"
+                                )}
                             >
-                                {tab.label}
-                                {activeTab === tab.id && (
+                                {cat}
+                                {activeCategory === cat && (
                                     <motion.div 
-                                        layoutId="underline"
+                                        layoutId="activeTab"
                                         className="absolute bottom-0 left-0 w-full h-[2px] bg-accent"
+                                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
                                     />
                                 )}
                             </button>
@@ -103,96 +118,55 @@ export const Catalog: React.FC = () => {
                 </div>
             </div>
 
-            <div className="container mx-auto px-6 py-12">
-                
-                {/* Error State */}
-                {error && (
-                    <div className="flex flex-col items-center justify-center py-20 text-red-500">
-                        <AlertCircle size={48} className="mb-4" />
-                        <p>{error}</p>
-                    </div>
-                )}
+            {/* Main Content - Sequential Categories */}
+            <div className="container mx-auto px-6 py-12 pb-32 space-y-24">
+                {CATEGORY_ORDER.map((cat) => {
+                    const categoryProducts = groupedProducts[cat] || [];
+                    if (categoryProducts.length === 0) return null;
 
-                {/* Grid */}
-                <motion.div 
-                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"
-                    variants={containerVariants}
-                    initial="hidden"
-                    whileInView="visible"
-                    viewport={{ once: true, margin: "0px 0px -100px 0px" }}
-                >
-                    {loading ? (
-                        // Skeletons
-                        Array.from({ length: 8 }).map((_, i) => (
-                            <div key={i} className="bg-gray-200 dark:bg-white/5 h-[400px] animate-pulse rounded-sm" />
-                        ))
-                    ) : (
-                        displayProducts.length > 0 ? (
-                            displayProducts.map((product) => {
-                                const translation = product.translations[language] || product.translations['en'] || { title: 'Untitled', description: '' };
-                                return (
-                                    <motion.div 
-                                        key={product.id}
-                                        variants={itemVariants}
-                                        className="group relative bg-white dark:bg-[#1e1e1e] shadow-sm hover:shadow-2xl transition-all duration-300 ease-out"
-                                        whileHover={{ y: -8 }}
-                                    >
-                                        <div className="aspect-[3/4] overflow-hidden relative bg-gray-100 dark:bg-black/20">
-                                            {product.images && product.images.length > 0 ? (
-                                                <img 
-                                                    src={product.images[0]} 
-                                                    alt={translation.title} 
-                                                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                                                    loading="lazy"
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-gray-400">No Image</div>
-                                            )}
-                                            
-                                            {/* Overlay Actions */}
-                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                                                <button 
-                                                    onClick={() => addItem(product)}
-                                                    disabled={!product.available}
-                                                    className={`bg-white text-primary px-6 py-3 rounded-full font-bold text-xs uppercase tracking-widest transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 flex items-center gap-2 ${
-                                                        product.available ? 'hover:bg-accent hover:text-white' : 'opacity-50 cursor-not-allowed'
-                                                    }`}
-                                                >
-                                                    <Plus size={16} /> {product.available ? 'Add to Cart' : 'Sold Out'}
-                                                </button>
-                                            </div>
-                                            
-                                            {!product.available && (
-                                                <div className="absolute top-4 right-4 bg-red-500 text-white text-[10px] font-bold px-3 py-1 uppercase tracking-widest">
-                                                    Sold
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <div className="p-6">
-                                            <h3 className="font-serif text-lg text-primary dark:text-white mb-1 truncate">
-                                                {translation.title}
-                                            </h3>
-                                            <p className="text-gray-500 text-xs uppercase tracking-wider mb-3">
-                                                {product.category}
-                                            </p>
-                                            <div className="flex justify-between items-center">
-                                                <span className="text-accent font-medium">
-                                                    € {product.price.toLocaleString(language)}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </motion.div>
-                                );
-                            })
-                        ) : (
-                            <div className="col-span-full text-center py-20 text-gray-500">
-                                No products found in this category.
+                    return (
+                        <motion.div 
+                            key={cat} 
+                            id={`category-${cat}`}
+                            initial={{ opacity: 0 }}
+                            whileInView={{ opacity: 1 }}
+                            viewport={{ once: true, margin: "-100px" }}
+                            className="scroll-mt-32"
+                        >
+                            {/* Category Title */}
+                            <div className="flex items-center gap-4 mb-12">
+                                <h2 className="text-2xl md:text-4xl font-serif text-primary dark:text-white uppercase tracking-tight">
+                                    {cat}
+                                </h2>
+                                <div className="h-[1px] flex-1 bg-gray-200 dark:bg-white/10" />
+                                <span className="text-xs text-gray-400 font-mono">
+                                    ({categoryProducts.length})
+                                </span>
                             </div>
-                        )
-                    )}
-                </motion.div>
+
+                            {/* Products Grid */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10">
+                                {categoryProducts.map((product, index) => (
+                                    <ProductCard 
+                                        key={product.id} 
+                                        product={product} 
+                                        index={index}
+                                        onClick={() => setSelectedProduct(product)}
+                                    />
+                                ))}
+                            </div>
+                        </motion.div>
+                    );
+                })}
             </div>
+
+            {/* Details Modal */}
+            <ProductModal 
+                product={selectedProduct} 
+                isOpen={!!selectedProduct} 
+                onClose={() => setSelectedProduct(null)} 
+            />
+
         </section>
     );
 };
