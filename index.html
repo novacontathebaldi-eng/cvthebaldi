@@ -1,109 +1,26 @@
-<!DOCTYPE html>
-<html lang="fr">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="https://picsum.photos/32/32" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Melissa Pelussi Art | Contemporary Art Luxembourg</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            colors: {
-              primary: '#2C2C2C',
-              accent: '#D4AF37',
-              light: '#F5F5F5',
-              secondary: '#6B6B6B'
-            },
-            fontFamily: {
-              sans: ['Inter', 'sans-serif'],
-              serif: ['Playfair Display', 'serif'],
-            }
-          }
-        }
-      }
-    </script>
-    <style>
-      /* Custom Scrollbar */
-      ::-webkit-scrollbar {
-        width: 8px;
-      }
-      ::-webkit-scrollbar-track {
-        background: #f1f1f1;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #D4AF37;
-        border-radius: 4px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #b59328;
-      }
-      
-      /* Smooth Scroll setup for Lenis */
-      html.lenis {
-        height: auto;
-      }
-      .lenis.lenis-smooth {
-        scroll-behavior: auto;
-      }
-      .lenis.lenis-smooth [data-lenis-prevent] {
-        overscroll-behavior: contain;
-      }
-      .lenis.lenis-stopped {
-        overflow: hidden;
-      }
-      .lenis.lenis-scrolling iframe {
-        pointer-events: none;
-      }
-    </style>
-  <script type="importmap">
+<script type="importmap">
 {
   "imports": {
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0",
-    "framer-motion": "https://aistudiocdn.com/framer-motion@^12.23.24",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
     "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "framer-motion": "https://aistudiocdn.com/framer-motion@^12.23.24",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0",
+    "firebase/": "https://aistudiocdn.com/firebase@^12.6.0/",
     "zustand/": "https://aistudiocdn.com/zustand@^5.0.8/",
     "zustand": "https://aistudiocdn.com/zustand@^5.0.8",
-    "@studio-freight/lenis": "https://aistudiocdn.com/@studio-freight/lenis@^1.0.42",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
     "next/": "https://aistudiocdn.com/next@^16.0.3/",
     "next": "https://aistudiocdn.com/next@^16.0.3",
-    "tailwindcss": "https://aistudiocdn.com/tailwindcss@^4.1.17",
-    "firebase/": "https://aistudiocdn.com/firebase@^12.6.0/",
     "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.84.0",
-    "@tanstack/react-query": "https://aistudiocdn.com/@tanstack/react-query@^5.90.10",
+    "@radix-ui/react-dialog": "https://aistudiocdn.com/@radix-ui/react-dialog@^1.1.15",
+    "@radix-ui/react-select": "https://aistudiocdn.com/@radix-ui/react-select@^2.2.6",
     "clsx": "https://aistudiocdn.com/clsx@^2.1.1",
-    "react-dom": "https://aistudiocdn.com/react-dom@^19.2.0",
+    "tailwindcss": "https://aistudiocdn.com/tailwindcss@^4.1.17",
     "tailwind-merge": "https://aistudiocdn.com/tailwind-merge@^3.4.0",
-    "@radix-ui/react-dialog": "https://esm.sh/@radix-ui/react-dialog@1.0.5?external=react,react-dom",
-    "@radix-ui/react-select": "https://esm.sh/@radix-ui/react-select@2.0.0?external=react,react-dom",
-    "@radix-ui/react-slot": "https://esm.sh/@radix-ui/react-slot@1.0.2?external=react,react-dom",
-    "@radix-ui/react-primitive": "https://esm.sh/@radix-ui/react-primitive@1.0.3?external=react,react-dom",
-    "@radix-ui/react-context": "https://esm.sh/@radix-ui/react-context@1.0.1?external=react,react-dom",
-    "@radix-ui/react-compose-refs": "https://esm.sh/@radix-ui/react-compose-refs@1.0.1?external=react,react-dom",
-    "@radix-ui/react-portal": "https://esm.sh/@radix-ui/react-portal@1.0.3?external=react,react-dom",
-    "@radix-ui/react-focus-scope": "https://esm.sh/@radix-ui/react-focus-scope@1.0.3?external=react,react-dom",
-    "@radix-ui/react-id": "https://esm.sh/@radix-ui/react-id@1.0.1?external=react,react-dom",
-    "@radix-ui/react-use-controllable-state": "https://esm.sh/@radix-ui/react-use-controllable-state@1.0.1?external=react,react-dom",
-    "@radix-ui/react-dismissable-layer": "https://esm.sh/@radix-ui/react-dismissable-layer@1.0.4?external=react,react-dom",
-    "@radix-ui/react-focus-guards": "https://esm.sh/@radix-ui/react-focus-guards@1.0.5?external=react,react-dom",
-    "@radix-ui/react-popper": "https://esm.sh/@radix-ui/react-popper@1.1.3?external=react,react-dom",
-    "@radix-ui/react-direction": "https://esm.sh/@radix-ui/react-direction@1.0.1?external=react,react-dom",
-    "@radix-ui/react-collection": "https://esm.sh/@radix-ui/react-collection@1.0.3?external=react,react-dom"
+    "@tanstack/react-query": "https://aistudiocdn.com/@tanstack/react-query@^5.90.10",
+    "@studio-freight/lenis": "https://aistudiocdn.com/@studio-freight/lenis@^1.0.42"
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
-</head>
-  <body class="bg-light dark:bg-primary text-primary dark:text-white transition-colors duration-300 overflow-x-hidden">
-    <div id="root"></div>
-  <script type="module" src="/index.tsx"></script>
-</body>
-</html>
+<!-- Este arquivo foi descontinuado em favor do Next.js App Router (app/layout.tsx). --><link rel="stylesheet" href="/index.css">
+<script type="module" src="/index.tsx"></script>

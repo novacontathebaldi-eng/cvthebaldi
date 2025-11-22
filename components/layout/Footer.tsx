@@ -129,7 +129,7 @@ export const Footer: React.FC = () => {
                             onClick={() => setTheme(t)}
                             className={`flex items-center justify-center p-1.5 rounded-md transition-all duration-300 ${
                                 theme === t 
-                                ? 'bg-white text-primary shadow-sm' 
+                                ? 'bg-white text-black shadow-sm' 
                                 : 'text-gray-500 hover:text-white hover:bg-white/10'
                             }`}
                             title={`Theme: ${t}`}
