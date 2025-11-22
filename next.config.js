@@ -1,7 +1,8 @@
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Note: output: 'export' must be REMOVED to support Server Actions on Vercel
+  output: 'export',
   images: {
     unoptimized: true,
     remotePatterns: [
@@ -11,7 +12,7 @@ const nextConfig = {
       { protocol: 'https', hostname: 'flagcdn.com' },
     ],
   },
-  // Ensure no trailing slash issues
+  // SPA-like behavior optimization
   trailingSlash: false,
 };
 

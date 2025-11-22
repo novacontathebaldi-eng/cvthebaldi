@@ -8,28 +8,17 @@ interface SubscribeState {
   };
 }
 
-// A leitura da variável de ambiente deve ser feita no topo ou dentro da função
-// Vercel injeta process.env automaticamente
+const API_KEY = "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";
 const LIST_ID = 5;
 
 export async function subscribeToNewsletter(prevState: SubscribeState, formData: FormData): Promise<SubscribeState> {
   const email = formData.get('email');
-  const API_KEY = process.env.BREVO_API_KEY;
 
   // Basic Validation
   if (!email || typeof email !== 'string' || !email.includes('@')) {
     return {
       success: false,
       message: 'invalid_email'
-    };
-  }
-
-  // Security check: Valida se a chave existe no ambiente de execução
-  if (!API_KEY) {
-    console.error("CRITICAL: Brevo API Key is missing in environment variables.");
-    return {
-      success: false,
-      message: 'server_error'
     };
   }
 
@@ -44,19 +33,16 @@ export async function subscribeToNewsletter(prevState: SubscribeState, formData:
       body: JSON.stringify({
         email: email,
         listIds: [LIST_ID],
-        updateEnabled: true // Atualiza se já existir (evita erro de duplicata travando o fluxo)
+        updateEnabled: true // Atualiza se já existir
       })
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      
-      // Handle duplicate gently
+      // Handle duplicate strictly if updateEnabled fails for some reason
       if (errorData.code === 'duplicate_parameter') {
          return { success: true, message: 'already_subscribed' };
       }
-      
-      console.error("Brevo API Error:", errorData);
       throw new Error('Brevo API Error');
     }
 

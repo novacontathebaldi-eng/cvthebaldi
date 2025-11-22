@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence, useInView, Variants } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence, useInView } from 'framer-motion';
 import { ArrowRight, Check, Loader2 } from 'lucide-react';
 import { useLanguage } from '../../hooks/useLanguage';
 import { subscribeToNewsletter } from '../../actions/newsletter';
@@ -12,8 +12,7 @@ export const Newsletter: React.FC = () => {
   const [feedbackKey, setFeedbackKey] = useState('');
   
   const ref = React.useRef(null);
-  // Alterado para "0px" para disparar assim que qualquer parte do componente tocar a tela
-  const isInView = useInView(ref, { once: true, margin: "0px" });
+  const isInView = useInView(ref, { once: true, margin: "0px 0px -100px 0px" });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,6 +23,7 @@ export const Newsletter: React.FC = () => {
     const formData = new FormData();
     formData.append('email', email);
 
+    // Simulate network delay for smoother animation on super fast connections
     const minDelay = new Promise(resolve => setTimeout(resolve, 800));
     
     try {
@@ -38,6 +38,7 @@ export const Newsletter: React.FC = () => {
         setStatus('error');
         setFeedbackKey(result.message === 'invalid_email' ? 'newsletter.invalid' : 'newsletter.error');
         
+        // Reset to idle after delay so they can try again
         setTimeout(() => {
             setStatus('idle');
         }, 3000);
@@ -49,8 +50,8 @@ export const Newsletter: React.FC = () => {
     }
   };
 
-  const containerVariants: Variants = {
-    hidden: { opacity: 1, y: 0 }, // Force visible initially to prevent black hole bug
+  const containerVariants = {
+    hidden: { opacity: 0, y: 50 },
     visible: { 
         opacity: 1, 
         y: 0,
@@ -61,19 +62,19 @@ export const Newsletter: React.FC = () => {
   return (
     <section 
         ref={ref}
-        className="relative py-32 md:py-48 px-6 bg-[#F8F8F8] dark:bg-black overflow-hidden transition-colors duration-500 min-h-[50vh]"
+        className="relative py-32 md:py-48 px-6 bg-[#F8F8F8] dark:bg-black overflow-hidden transition-colors duration-500"
     >
       <div className="container mx-auto max-w-4xl relative z-10">
         <motion.div
             variants={containerVariants}
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
+            animate={isInView ? "visible" : "hidden"}
             className="flex flex-col items-start w-full"
         >
             {/* Section Label */}
             <motion.span 
                 className="text-accent text-xs font-bold tracking-[0.25em] uppercase mb-8"
+                variants={{ hidden: { opacity: 0 }, visible: { opacity: 1 } }}
             >
                 {t('newsletter.title')}
             </motion.span>
@@ -107,7 +108,7 @@ export const Newsletter: React.FC = () => {
                     ) : (
                         <motion.div
                             key="form"
-                            initial={{ opacity: 1 }}
+                            initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0, y: -20, filter: "blur(10px)" }}
                             className="w-full"
@@ -143,7 +144,7 @@ export const Newsletter: React.FC = () => {
                                         <Loader2 size={32} className="animate-spin text-accent" />
                                     ) : (
                                         <div className="group-hover:translate-x-2 transition-transform duration-300 bg-accent rounded-full p-3 md:p-4 text-white shadow-lg hover:shadow-accent/50">
-                                            <ArrowRight className="w-6 h-6 md:w-8 md:h-8" />
+                                            <ArrowRight size={24} md:size={32} />
                                         </div>
                                     )}
                                 </motion.button>
