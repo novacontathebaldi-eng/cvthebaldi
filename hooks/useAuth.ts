@@ -1,13 +1,10 @@
-import { useEffect } from 'react';
-import { useAuthStore } from '../store/authStore';
+import { useContext } from 'react';
+import { AuthContext } from '../contexts/AuthContext';
 
 export const useAuth = () => {
-  const store = useAuthStore();
-
-  useEffect(() => {
-    // Initialize auth check on mount
-    store.checkAuth();
-  }, []);
-
-  return store;
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };

@@ -1,7 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Configuração Hardcoded conforme solicitado
-const supabaseUrl = "https://pycvlkcxgfwsquzolkzw.supabase.co";
-const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5Y3Zsa2N4Z2Z3c3F1em9sa3p3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI0NDAzNjEsImV4cCI6MjA3ODAxNjM2MX0.YmP6QxGmcWhGUg6vl3f1URcudsg3iPyRMdD0Z5u1fEY";
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn("Supabase URL and Anon Key are missing. Storage features may not work.");
+}
+
+export const supabase = createClient(
+  supabaseUrl || '',
+  supabaseAnonKey || ''
+);

@@ -1,28 +1,17 @@
 import { 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
   signInWithPopup, 
   GoogleAuthProvider, 
-  signOut as firebaseSignOut,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  updateProfile,
+  signOut, 
   sendPasswordResetEmail,
-  User
+  updateProfile as firebaseUpdateProfile,
+  User,
+  AuthError
 } from 'firebase/auth';
 import { auth } from './config';
 
-const googleProvider = new GoogleAuthProvider();
-
-export const signInWithGoogle = async () => {
-  try {
-    const result = await signInWithPopup(auth, googleProvider);
-    return result.user;
-  } catch (error) {
-    console.error("Error signing in with Google", error);
-    throw error;
-  }
-};
-
-export const signInWithEmail = async (email: string, pass: string) => {
+export const loginWithEmail = async (email: string, pass: string) => {
   try {
     const result = await signInWithEmailAndPassword(auth, email, pass);
     return result.user;
@@ -31,13 +20,31 @@ export const signInWithEmail = async (email: string, pass: string) => {
   }
 };
 
-export const signUpWithEmail = async (email: string, pass: string, displayName: string) => {
+export const signupWithEmail = async (email: string, pass: string, displayName?: string) => {
   try {
     const result = await createUserWithEmailAndPassword(auth, email, pass);
-    if (result.user) {
-      await updateProfile(result.user, { displayName });
+    if (displayName) {
+      await firebaseUpdateProfile(result.user, { displayName });
     }
     return result.user;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const loginWithGoogle = async () => {
+  try {
+    const provider = new GoogleAuthProvider();
+    const result = await signInWithPopup(auth, provider);
+    return result.user;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const logoutUser = async () => {
+  try {
+    await signOut(auth);
   } catch (error) {
     throw error;
   }
@@ -51,19 +58,10 @@ export const resetPassword = async (email: string) => {
   }
 };
 
-export const logout = async () => {
+export const updateUserProfile = async (user: User, data: { displayName?: string; photoURL?: string }) => {
   try {
-    await firebaseSignOut(auth);
+    await firebaseUpdateProfile(user, data);
   } catch (error) {
-    console.error("Error signing out", error);
+    throw error;
   }
-};
-
-export const getCurrentUser = (): Promise<User | null> => {
-  return new Promise((resolve) => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      unsubscribe();
-      resolve(user);
-    });
-  });
 };
