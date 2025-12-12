@@ -1,23 +1,68 @@
-import React, { useState, useEffect, ReactNode, ErrorInfo } from 'react';
+import React, { useState, useEffect, ReactNode, ErrorInfo, Suspense, lazy } from 'react';
 import { HashRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CheckCircle, AlertCircle, Info, X, RefreshCw, Loader2 } from 'lucide-react';
 import { Layout } from './components/Layout';
-import { Home } from './pages/Home';
-import { Portfolio } from './pages/Portfolio';
-import { ProjectDetails } from './pages/ProjectDetails';
-import { Cultural } from './pages/Cultural';
-import { CulturalDetails } from './pages/CulturalDetails';
-import { About } from './pages/About';
-import { Office } from './pages/Office';
-import { Contact } from './pages/Contact';
-import { Auth } from './pages/Auth';
-import { ClientArea } from './pages/ClientArea';
-import { BudgetFlow } from './pages/BudgetFlow';
-import { AdminDashboard } from './pages/Admin/AdminDashboard';
-import { ProjectForm } from './pages/Admin/ProjectForm';
-import { CulturalProjectForm } from './pages/Admin/CulturalProjectForm';
 import { ProjectProvider, useProjects } from './context/ProjectContext';
+import { CartProvider } from './context/CartContext';
+import { LoadingScreen } from './components/loading';
+
+// Lazy load with automatic retry - reloads page once if chunk fails (e.g., after deploy)
+// This prevents 404 errors when old cached index.html references old chunk hashes
+function lazyWithRetry<T extends React.ComponentType<unknown>>(
+  importFn: () => Promise<{ default: T }>
+) {
+  return lazy(async () => {
+    try {
+      return await importFn();
+    } catch (error) {
+      // Chunk load failed (likely 404 from old version after deploy)
+      // Check if we already tried reloading to prevent infinite loop
+      const hasReloaded = sessionStorage.getItem('chunk-reload-retry');
+
+      if (!hasReloaded) {
+        // Mark that we're about to reload
+        sessionStorage.setItem('chunk-reload-retry', 'true');
+        // Reload to get fresh index.html with new chunk references
+        window.location.reload();
+      } else {
+        // Already reloaded once, clear flag for future and let error propagate
+        sessionStorage.removeItem('chunk-reload-retry');
+      }
+
+      throw error;
+    }
+  });
+}
+
+// Clear retry flag on successful page load (ensures next deploy can trigger reload)
+if (typeof window !== 'undefined') {
+  window.addEventListener('load', () => {
+    sessionStorage.removeItem('chunk-reload-retry');
+  });
+}
+
+// Lazy load all pages for code-splitting (with automatic retry on failure)
+const Home = lazyWithRetry(() => import('./pages/Home').then(module => ({ default: module.Home })));
+const Portfolio = lazyWithRetry(() => import('./pages/Portfolio').then(module => ({ default: module.Portfolio })));
+const ProjectDetails = lazyWithRetry(() => import('./pages/ProjectDetails').then(module => ({ default: module.ProjectDetails })));
+const Cultural = lazyWithRetry(() => import('./pages/Cultural').then(module => ({ default: module.Cultural })));
+const CulturalDetails = lazyWithRetry(() => import('./pages/CulturalDetails').then(module => ({ default: module.CulturalDetails })));
+const About = lazyWithRetry(() => import('./pages/About').then(module => ({ default: module.About })));
+const Office = lazyWithRetry(() => import('./pages/Office').then(module => ({ default: module.Office })));
+const Contact = lazyWithRetry(() => import('./pages/Contact').then(module => ({ default: module.Contact })));
+const Auth = lazyWithRetry(() => import('./pages/Auth').then(module => ({ default: module.Auth })));
+const ClientArea = lazyWithRetry(() => import('./pages/ClientArea').then(module => ({ default: module.ClientArea })));
+const BudgetFlow = lazyWithRetry(() => import('./pages/BudgetFlow').then(module => ({ default: module.BudgetFlow })));
+const AdminDashboard = lazyWithRetry(() => import('./pages/Admin/AdminDashboard').then(module => ({ default: module.AdminDashboard })));
+const ProjectForm = lazyWithRetry(() => import('./pages/Admin/ProjectForm').then(module => ({ default: module.ProjectForm })));
+const CulturalProjectForm = lazyWithRetry(() => import('./pages/Admin/CulturalProjectForm').then(module => ({ default: module.CulturalProjectForm })));
+
+// Shop Pages (Lazy loaded with retry)
+const Shop = lazyWithRetry(() => import('./pages/Shop/Shop').then(module => ({ default: module.Shop })));
+const ProductDetails = lazyWithRetry(() => import('./pages/Shop/ProductDetails').then(module => ({ default: module.ProductDetails })));
+const Cart = lazyWithRetry(() => import('./pages/Shop/Cart').then(module => ({ default: module.Cart })));
+const Checkout = lazyWithRetry(() => import('./pages/Shop/Checkout').then(module => ({ default: module.Checkout })));
 
 // --- Error Boundary Component ---
 interface ErrorBoundaryProps {
@@ -26,20 +71,21 @@ interface ErrorBoundaryProps {
 
 interface ErrorBoundaryState {
   hasError: boolean;
+  errorMessage?: string;
 }
 
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { hasError: false, errorMessage: '' };
   }
 
-  static getDerivedStateFromError(_: Error): ErrorBoundaryState {
-    return { hasError: true };
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, errorMessage: error.message };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("ErrorBoundary caught an error", error, errorInfo);
+    console.error('💥 CRITICAL ERROR:', { error: error.message, stack: error.stack, componentStack: errorInfo.componentStack, timestamp: new Date().toISOString() });
   }
 
   render() {
@@ -50,12 +96,18 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
             <AlertCircle className="w-12 h-12 text-gray-400" />
           </div>
           <h2 className="text-3xl font-serif mb-4">Algo deu errado.</h2>
-          <p className="text-gray-500 mb-8 max-w-md">
+          <p className="text-gray-500 mb-4 max-w-md">
             Ocorreu um erro inesperado ao carregar a página. Isso pode ser uma instabilidade temporária.
           </p>
+          {/* DEBUG: Show actual error in development */}
+          {import.meta.env.DEV && this.state.errorMessage && (
+            <p className="text-red-500 text-xs mb-4 font-mono bg-red-50 p-2 rounded max-w-lg break-all">
+              DEV: {this.state.errorMessage}
+            </p>
+          )}
           <button
             onClick={() => {
-              this.setState({ hasError: false });
+              this.setState({ hasError: false, errorMessage: '' });
               window.location.href = '/';
             }}
             className="bg-black text-white px-8 py-3 rounded-full hover:bg-accent hover:text-black transition flex items-center space-x-2 shadow-lg"
@@ -70,13 +122,25 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   }
 }
 
-// Splash Screen Component
+// Splash Screen Component - Main Loading Screen
 const PRELOAD_IMAGES = [
   "https://pycvlkcxgfwsquzolkzw.supabase.co/storage/v1/object/public/storage-Fran/fundo-home.png",
   "https://pycvlkcxgfwsquzolkzw.supabase.co/storage/v1/object/public/storage-Fran/img-sobre-home.png"
 ];
 
-const Splash: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
+const MIN_SPLASH_TIME = 2000; // Minimum time to show splash (2s)
+const MAX_SPLASH_TIME = 10000; // Maximum time before forcing completion (10s safety)
+
+interface SplashProps {
+  isDataReady: boolean;
+  areComponentsReady: boolean;
+  onComplete: () => void;
+}
+
+const Splash: React.FC<SplashProps> = ({ isDataReady, areComponentsReady, onComplete }) => {
+  const [minTimeElapsed, setMinTimeElapsed] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
+
   useEffect(() => {
     // Preload images
     PRELOAD_IMAGES.forEach((src) => {
@@ -84,12 +148,38 @@ const Splash: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
       img.src = src;
     });
 
-    const timer = setTimeout(onComplete, 2500);
-    return () => clearTimeout(timer);
+    // Minimum display time
+    const minTimer = setTimeout(() => setMinTimeElapsed(true), MIN_SPLASH_TIME);
+
+    // Safety timeout - force complete after MAX_SPLASH_TIME
+    const maxTimer = setTimeout(() => {
+      console.warn('[Splash] Force completing due to timeout');
+      setIsExiting(true);
+      setTimeout(onComplete, 500);
+    }, MAX_SPLASH_TIME);
+
+    return () => {
+      clearTimeout(minTimer);
+      clearTimeout(maxTimer);
+    };
   }, [onComplete]);
 
+  // Complete when ALL conditions are met: data ready + components ready + min time passed
+  useEffect(() => {
+    if (minTimeElapsed && isDataReady && areComponentsReady && !isExiting) {
+      setIsExiting(true);
+      // Smooth fade out before completing
+      setTimeout(onComplete, 500);
+    }
+  }, [minTimeElapsed, isDataReady, areComponentsReady, isExiting, onComplete]);
+
   return (
-    <div className="fixed inset-0 bg-[#1a1a1a] flex items-center justify-center z-[100] text-white">
+    <div
+      className={`fixed inset-0 bg-[#1a1a1a] flex items-center justify-center z-[100] text-white transition-opacity duration-500 ${isExiting ? 'opacity-0' : 'opacity-100'}`}
+      role="status"
+      aria-live="polite"
+      aria-label="Carregando site Fran Siller Arquitetura"
+    >
       <div className="text-center animate-pulse">
         <h1 className="text-4xl font-serif tracking-widest mb-2 uppercase">Fran Siller</h1>
         <div className="h-0.5 w-16 bg-accent mx-auto"></div>
@@ -99,11 +189,27 @@ const Splash: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
   );
 };
 
-// ScrollToTop
+// ScrollToTop - Respect back/forward navigation
 const ScrollToTop = () => {
+  const { pathname, key } = useLocation();
+
+  useEffect(() => {
+    // Quando key é 'default', geralmente significa navegação de histórico (back/forward)
+    // Apenas rola para o topo em navegação para frente (push/replace)
+    if (key !== 'default') {
+      window.scrollTo(0, 0);
+    }
+  }, [pathname, key]);
+  return null;
+};
+
+// RouteLogger - Logs navigation events for security audit
+const RouteLogger = () => {
   const { pathname } = useLocation();
   useEffect(() => {
-    window.scrollTo(0, 0);
+    if (import.meta.env.DEV) {
+      console.log('🧭 ROUTE: User navigated to', { path: pathname, timestamp: new Date().toISOString() });
+    }
   }, [pathname]);
   return null;
 };
@@ -150,11 +256,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, role }) => {
   const { currentUser, isLoadingAuth } = useProjects();
 
   if (isLoadingAuth) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-      </div>
-    );
+    return <LoadingScreen message="Verificando acesso..." />;
   }
 
   if (!currentUser) {
@@ -168,113 +270,177 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, role }) => {
   return <>{children}</>;
 };
 
+// Loading fallback component for Suspense
+const PageLoader: React.FC = () => (
+  <LoadingScreen message="Carregando página..." />
+);
+
 // Wrapper for Routes to allow useLocation hook
 const AnimatedRoutes: React.FC = () => {
   const location = useLocation();
   const { currentUser, settings } = useProjects();
 
   return (
-    <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
-        {/* Public Routes */}
-        <Route path="/" element={<Layout><Home /></Layout>} />
-        <Route path="/portfolio" element={<Layout><Portfolio /></Layout>} />
-        <Route path="/project/:id" element={<Layout><ProjectDetails /></Layout>} />
-        <Route path="/cultural" element={<Layout><Cultural /></Layout>} />
-        <Route path="/cultural/:id" element={<Layout><CulturalDetails /></Layout>} />
-        <Route path="/about" element={<Layout><About /></Layout>} />
-        <Route path="/office" element={<Layout><Office /></Layout>} />
-        <Route path="/contact" element={<Layout><Contact /></Layout>} />
+    <Suspense fallback={<PageLoader />}>
+      <AnimatePresence mode="wait">
+        <Routes location={location}>
+          {/* Public Routes */}
+          <Route path="/" element={<Layout><Home /></Layout>} />
+          <Route path="/portfolio" element={<Layout><Portfolio /></Layout>} />
+          <Route path="/project/:id" element={<Layout><ProjectDetails /></Layout>} />
+          <Route path="/cultural" element={<Layout><Cultural /></Layout>} />
+          <Route path="/cultural/:id" element={<Layout><CulturalDetails /></Layout>} />
+          <Route path="/about" element={<Layout><About /></Layout>} />
+          <Route path="/office" element={<Layout><Office /></Layout>} />
+          <Route path="/contact" element={<Layout><Contact /></Layout>} />
 
-        {/* Auth Routes - NO LAYOUT/HEADER */}
-        <Route path="/auth/*" element={<Auth />} />
+          {/* Auth Routes - NO LAYOUT/HEADER */}
+          <Route path="/auth/*" element={<Auth />} />
 
-        {/* Client Protected Routes */}
-        <Route
-          path="/profile/*"
-          element={
-            <ProtectedRoute>
-              <Layout><ClientArea /></Layout>
-            </ProtectedRoute>
-          }
-        />
+          {/* Client Protected Routes */}
+          <Route
+            path="/profile/*"
+            element={
+              <ProtectedRoute>
+                <Layout><ClientArea /></Layout>
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Shop/Budget Routes (Conditional) */}
-        {settings.enableShop && (
-          <>
-            <Route path="/services" element={<Layout><BudgetFlow /></Layout>} />
-            <Route path="/budget" element={<Layout><BudgetFlow /></Layout>} />
-          </>
-        )}
+          {/* Budget/Services Routes (ALWAYS available - independent of shop status) */}
+          <Route path="/services" element={<Layout><BudgetFlow /></Layout>} />
+          <Route path="/budget" element={<Layout><BudgetFlow /></Layout>} />
 
-        {/* Admin Routes */}
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute role="admin">
-              <AdminDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/project/new"
-          element={
-            <ProtectedRoute role="admin">
-              <ProjectForm />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/project/edit/:id"
-          element={
-            <ProtectedRoute role="admin">
-              <ProjectForm />
-            </ProtectedRoute>
-          }
-        />
-        {/* Cultural Admin Routes */}
-        <Route
-          path="/admin/cultural/new"
-          element={
-            <ProtectedRoute role="admin">
-              <CulturalProjectForm />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/cultural/edit/:id"
-          element={
-            <ProtectedRoute role="admin">
-              <CulturalProjectForm />
-            </ProtectedRoute>
-          }
-        />
+          {/* Shop Routes (Conditional - only when shop enabled) */}
+          {settings.enableShop && (
+            <>
+              <Route path="/shop" element={<Layout><Shop /></Layout>} />
+              <Route path="/shop/product/:id" element={<Layout><ProductDetails /></Layout>} />
+              <Route path="/cart" element={<Layout><Cart /></Layout>} />
+              <Route
+                path="/checkout"
+                element={
+                  <ProtectedRoute>
+                    <Layout><Checkout /></Layout>
+                  </ProtectedRoute>
+                }
+              />
+            </>
+          )}
 
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
-    </AnimatePresence>
+          {/* Redirect shop routes when disabled */}
+          {!settings.enableShop && (
+            <>
+              <Route path="/shop/*" element={<Navigate to="/" replace />} />
+              <Route path="/cart" element={<Navigate to="/" replace />} />
+              <Route path="/checkout" element={<Navigate to="/" replace />} />
+            </>
+          )}
+
+          {/* Admin Routes */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute role="admin">
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/project/new"
+            element={
+              <ProtectedRoute role="admin">
+                <ProjectForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/project/edit/:id"
+            element={
+              <ProtectedRoute role="admin">
+                <ProjectForm />
+              </ProtectedRoute>
+            }
+          />
+          {/* Cultural Admin Routes */}
+          <Route
+            path="/admin/cultural/new"
+            element={
+              <ProtectedRoute role="admin">
+                <CulturalProjectForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/cultural/edit/:id"
+            element={
+              <ProtectedRoute role="admin">
+                <CulturalProjectForm />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </AnimatePresence>
+    </Suspense>
   );
 };
 
 // Main App Component with Providers
 const App: React.FC = () => {
-  const [loading, setLoading] = useState(true);
-
   useEffect(() => {
-    // Register service worker for PWA
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker
-          .register('/service-worker.js')
-          .then(() => {
-            // Service worker registered successfully
-          })
-          .catch(() => {
-            // Service worker registration failed
+    // Register service worker for PWA with update detection
+    // ONLY in production to avoid cache conflicts during development
+    const registerSW = async () => {
+      // Skip SW in development mode
+      if (import.meta.env.DEV) {
+        console.log('[SW] Service Worker skipped in development mode');
+        // Unregister any existing SW in dev mode to clear stale cache
+        if ('serviceWorker' in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          for (const registration of registrations) {
+            await registration.unregister();
+            console.log('[SW] Unregistered existing service worker');
+          }
+        }
+        return;
+      }
+
+      if ('serviceWorker' in navigator) {
+        try {
+          const registration = await navigator.serviceWorker.register('/service-worker.js');
+
+          // Check for updates periodically
+          setInterval(() => {
+            registration.update();
+          }, 60 * 60 * 1000); // Check every hour
+
+          // Listen for new service worker waiting
+          registration.addEventListener('updatefound', () => {
+            const newWorker = registration.installing;
+            if (newWorker) {
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // New content available - could show refresh prompt to user
+                }
+              });
+            }
           });
-      });
-    }
+        } catch {
+          // SW registration failed silently
+        }
+
+        // Listen for messages from Service Worker
+        navigator.serviceWorker.addEventListener('message', () => {
+          // Handle SW messages silently
+        });
+      }
+    };
+
+    // Register immediately - don't wait for load event (it already fired)
+    registerSW();
 
     // Console message
     console.log(
@@ -295,20 +461,86 @@ const App: React.FC = () => {
     );
   }, []);
 
-  if (loading) {
-    return <Splash onComplete={() => setLoading(false)} />;
-  }
-
   return (
     <ProjectProvider>
-      <Router>
+      <CartProvider>
+        <AppContent />
+      </CartProvider>
+    </ProjectProvider>
+  );
+};
+
+// AppContent - Has access to ProjectContext for Splash loading state
+const AppContent: React.FC = () => {
+  const { isLoadingData } = useProjects();
+  const [showSplash, setShowSplash] = useState(true);
+  const [minTimeElapsed, setMinTimeElapsed] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
+
+  // Preload images
+  useEffect(() => {
+    const PRELOAD_IMAGES = [
+      "https://pycvlkcxgfwsquzolkzw.supabase.co/storage/v1/object/public/storage-Fran/fundo-home.png",
+      "https://pycvlkcxgfwsquzolkzw.supabase.co/storage/v1/object/public/storage-Fran/img-sobre-home.png"
+    ];
+    PRELOAD_IMAGES.forEach((src) => {
+      const img = new Image();
+      img.src = src;
+    });
+
+    // Minimum display time
+    const minTimer = setTimeout(() => setMinTimeElapsed(true), 2000);
+
+    // Safety timeout - force complete after 10s
+    const maxTimer = setTimeout(() => {
+      console.warn('[Splash] Force completing due to timeout');
+      setIsExiting(true);
+      setTimeout(() => setShowSplash(false), 500);
+    }, 10000);
+
+    return () => {
+      clearTimeout(minTimer);
+      clearTimeout(maxTimer);
+    };
+  }, []);
+
+  // Complete when data is ready AND min time has passed
+  useEffect(() => {
+    if (minTimeElapsed && !isLoadingData && !isExiting) {
+      setIsExiting(true);
+      // Smooth fade out before hiding
+      setTimeout(() => setShowSplash(false), 500);
+    }
+  }, [minTimeElapsed, isLoadingData, isExiting]);
+
+  return (
+    <>
+      {/* Router ALWAYS renders - loads in background behind Splash */}
+      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <ErrorBoundary>
           <ScrollToTop />
+          <RouteLogger />
           <GlobalToast />
           <AnimatedRoutes />
         </ErrorBoundary>
       </Router>
-    </ProjectProvider>
+
+      {/* Splash as OVERLAY - covers everything until ready */}
+      {showSplash && (
+        <div
+          className={`fixed inset-0 bg-[#1a1a1a] flex items-center justify-center z-[9999] text-white transition-opacity duration-500 ${isExiting ? 'opacity-0' : 'opacity-100'}`}
+          role="status"
+          aria-live="polite"
+          aria-label="Carregando site Fran Siller Arquitetura"
+        >
+          <div className="text-center animate-pulse">
+            <h1 className="text-4xl font-serif tracking-widest mb-2 uppercase">Fran Siller</h1>
+            <div className="h-0.5 w-16 bg-accent mx-auto"></div>
+            <p className="text-xs uppercase tracking-widest mt-4 text-gray-400">Arquitetura & Design</p>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

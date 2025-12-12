@@ -3,6 +3,7 @@ import { Search, Calendar, ChevronDown, Eye, Archive, FileText, CheckSquare, Squ
 import { BudgetRequest, BudgetStatus, BUDGET_STATUS_LABELS, BUDGET_STATUS_COLORS } from '../../types/budgetTypes';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../supabaseClient';
+import { normalizeString } from '../../utils/stringUtils';
 
 interface BudgetRequestsDashboardProps {
     onViewDetails: (id: string) => void;
@@ -23,9 +24,21 @@ export const BudgetRequestsDashboard: React.FC<BudgetRequestsDashboardProps> = (
         'Mais antigos': false,
     });
 
-    // Fetch real data from Supabase
+    // Fetch real data from Supabase with timeout protection
     useEffect(() => {
+        let timeoutId: ReturnType<typeof setTimeout>;
+
+        // Safety timeout - ensure loading ends after 10 seconds max
+        timeoutId = setTimeout(() => {
+            if (loading) {
+                console.warn('[BudgetRequestsDashboard] Timeout: Forçando fim do loading');
+                setLoading(false);
+            }
+        }, 10000);
+
         fetchBudgetRequests();
+
+        return () => clearTimeout(timeoutId);
     }, []);
 
     const fetchBudgetRequests = async () => {
@@ -65,11 +78,11 @@ export const BudgetRequestsDashboard: React.FC<BudgetRequestsDashboardProps> = (
     // Filter logic
     const filteredRequests = budgetRequests.filter(request => {
         // Search
-        const searchLower = searchTerm.toLowerCase();
+        const normalizedSearch = normalizeString(searchTerm);
         const matchesSearch =
-            request.clientName.toLowerCase().includes(searchLower) ||
-            request.clientEmail.toLowerCase().includes(searchLower) ||
-            request.projectCity.toLowerCase().includes(searchLower);
+            normalizeString(request.clientName).includes(normalizedSearch) ||
+            normalizeString(request.clientEmail).includes(normalizedSearch) ||
+            normalizeString(request.projectCity).includes(normalizedSearch);
 
         // Status filter
         const matchesStatus = statusFilter === 'all' || request.status === statusFilter;

@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useProjects } from '../../context/ProjectContext';
-import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Edit2, Trash2, LayoutDashboard, FolderOpen, Users, Settings, LogOut, FileText, Save, Brain, ShoppingBag, Menu, X, ChevronRight, MessageSquare, Check, Clock, Upload, ImageIcon, Folder, Download, ArrowLeft, Bot, ThumbsDown, Calendar, MapPin, Ban, Map, GripVertical, ArrowUp, ArrowDown, Type, Quote, LayoutGrid, Heading, Info, RefreshCw, Archive, Link as LinkIcon, ThumbsUp, ToggleLeft, ToggleRight, Search, Landmark, Loader2, History } from 'lucide-react';
-import { SiteContent, GlobalSettings, StatItem, PillarItem, User, ClientFolder, Appointment, OfficeDetails, ContentBlock, ClientMemory } from '../../types';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Plus, Edit2, Trash2, LayoutDashboard, FolderOpen, Users, Settings, LogOut, FileText, Save, Brain, ShoppingBag, Menu, X, ChevronRight, MessageSquare, Check, Clock, Upload, ImageIcon, Folder, Download, ArrowLeft, Bot, ThumbsDown, Calendar, MapPin, Ban, Map, GripVertical, ArrowUp, ArrowDown, Type, Quote, LayoutGrid, Heading, Info, RefreshCw, Archive, Link as LinkIcon, ThumbsUp, ToggleLeft, ToggleRight, Search, Landmark, Loader2, History, Mail, Star } from 'lucide-react';
+import { SiteContent, GlobalSettings, StatItem, PillarItem, User, ClientFolder, Appointment, OfficeDetails, ContentBlock, ClientMemory, FaqItem, SocialLink, DashboardWidget, DashboardTabId } from '../../types';
 import { motion, Reorder, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../supabaseClient';
 import { BudgetRequestsDashboard } from './BudgetRequestsDashboard';
 import { BudgetRequestDetail } from './BudgetRequestDetail';
 import { Receipt } from 'lucide-react';
+import { MessagesDashboard } from './MessagesDashboard';
+import { ShopManagement } from './ShopManagement';
+import { ImageCropModal, useImageCropModal } from '../../components/ImageCropModal';
 
 // Real Supabase Upload
 const uploadToSupabase = async (file: File): Promise<string> => {
@@ -31,20 +34,53 @@ const uploadToSupabase = async (file: File): Promise<string> => {
 };
 
 export const AdminDashboard: React.FC = () => {
-    const { projects, deleteProject, culturalProjects, deleteCulturalProject, logout, siteContent, updateSiteContent, showToast, settings, updateSettings, adminNotes, markNoteAsRead, deleteAdminNote, users, createClientFolder, renameClientFolder, deleteClientFolder, uploadFileToFolder, deleteClientFile, updateUser, aiFeedbacks, appointments, scheduleSettings, updateScheduleSettings, updateAppointmentStatus, updateAppointment, deleteAppointmentPermanently, currentUser } = useProjects();
+    const { projects, deleteProject, updateProject, culturalProjects, deleteCulturalProject, updateCulturalProject, logout, siteContent, updateSiteContent, showToast, settings, updateSettings, persistAllSettings, messages, users, createClientFolder, renameClientFolder, deleteClientFolder, uploadFileToFolder, deleteClientFile, updateUser, aiFeedbacks, appointments, scheduleSettings, updateScheduleSettings, updateAppointmentStatus, updateAppointment, deleteAppointmentPermanently, currentUser, isLoadingData } = useProjects();
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
 
-    // TABS: Added 'cultural'
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'projects' | 'cultural' | 'content' | 'settings' | 'ai-config' | 'messages' | 'clients' | 'agenda' | 'office' | 'budgets'>('dashboard');
+    // TABS: Synced with URL query params for better navigation
+    type AdminTab = 'dashboard' | 'projects' | 'cultural' | 'content' | 'settings' | 'ai-config' | 'messages' | 'clients' | 'agenda' | 'office' | 'budgets' | 'shop';
+    const validTabs: AdminTab[] = ['dashboard', 'projects', 'cultural', 'content', 'settings', 'ai-config', 'messages', 'clients', 'agenda', 'office', 'budgets', 'shop'];
 
+    // Get tab from URL or default to 'dashboard'
+    const urlTab = searchParams.get('tab') as AdminTab;
+    const initialTab: AdminTab = urlTab && validTabs.includes(urlTab) ? urlTab : 'dashboard';
+    const [activeTab, setActiveTab] = useState<AdminTab>(initialTab);
+
+    // Sync activeTab with URL changes (for browser back/forward)
+    useEffect(() => {
+        const urlTab = searchParams.get('tab') as AdminTab;
+        if (urlTab && validTabs.includes(urlTab) && urlTab !== activeTab) {
+            setActiveTab(urlTab);
+        } else if (!urlTab && activeTab !== 'dashboard') {
+            // If no tab param and not on dashboard, update URL to reflect current tab
+            setSearchParams({ tab: activeTab }, { replace: true });
+        }
+    }, [searchParams]);
+
+    // Tab change handler that syncs with URL
+    const handleTabChange = (tab: AdminTab) => {
+        setActiveTab(tab);
+        setSearchParams({ tab }, { replace: false });
+        setMobileMenuOpen(false);
+        setSelectedClient(null);
+        setCurrentAdminFolderId(null);
+    };
+
+    // Contact Messages State Removed (Unified)
+
+    // Mobile Menu State
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [selectedBudgetRequestId, setSelectedBudgetRequestId] = useState<string | null>(null);
     const [uploading, setUploading] = useState(false);
     const [saving, setSaving] = useState(false);
 
+    // Message fetch logic moved to ProjectContext
+
     // Local forms
     const [contentForm, setContentForm] = useState<SiteContent>(siteContent);
     const [settingsForm, setSettingsForm] = useState<GlobalSettings>(settings);
+
 
     // Sync contentForm with siteContent when it loads from DB
     useEffect(() => {
@@ -53,12 +89,15 @@ export const AdminDashboard: React.FC = () => {
         }
     }, [siteContent]);
 
-    // Sync settingsForm with settings when it loads from DB
+    // Sync settingsForm with settings when it loads from DB (ONLY after data is loaded)
+    const settingsInitialized = React.useRef(false);
     useEffect(() => {
-        if (settings) {
+        // Wait for data to load from DB before syncing
+        if (settings && !isLoadingData && !settingsInitialized.current) {
             setSettingsForm(settings);
+            settingsInitialized.current = true;
         }
-    }, [settings]);
+    }, [settings, isLoadingData]);
 
     // Client Details View
     const [selectedClient, setSelectedClient] = useState<User | null>(null);
@@ -76,8 +115,24 @@ export const AdminDashboard: React.FC = () => {
     // AGENDA STATES
     const [showHistory, setShowHistory] = useState(false);
     const [showBlockModal, setShowBlockModal] = useState(false);
+    const [showEditDashboardModal, setShowEditDashboardModal] = useState(false); // Dashboard customization modal
+    const [selectedWidgetsToAdd, setSelectedWidgetsToAdd] = useState<string[]>([]); // Multi-select for adding widgets
+    const [localEditingWidgets, setLocalEditingWidgets] = useState<DashboardWidget[]>([]); // Local copy for editing before save
     const [blockForm, setBlockForm] = useState({ date: '', time: '' });
     const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
+
+    // Office Crop Modal States
+    const [officeCropModalOpen, setOfficeCropModalOpen] = useState(false);
+    const [officeCropImage, setOfficeCropImage] = useState('');
+    const [officeCropFile, setOfficeCropFile] = useState<File | null>(null);
+    const [pendingOfficeBlockId, setPendingOfficeBlockId] = useState<string | null>(null);
+    const [pendingOfficeGridIndex, setPendingOfficeGridIndex] = useState<number | null>(null);
+
+    // About Crop Modal States
+    const [aboutCropModalOpen, setAboutCropModalOpen] = useState(false);
+    const [aboutCropImage, setAboutCropImage] = useState('');
+    const [aboutCropFile, setAboutCropFile] = useState<File | null>(null);
+    const [pendingAboutField, setPendingAboutField] = useState<'heroImage' | 'profileImage' | null>(null);
 
     // SYNC SELECTED CLIENT WITH GLOBAL USERS STATE
     // This ensures that when a folder is created/deleted/renamed via Context, the local view updates immediately.
@@ -89,6 +144,19 @@ export const AdminDashboard: React.FC = () => {
             }
         }
     }, [users]); // Trigger whenever users list changes in context
+
+    // Lock body scroll when mobile menu is open
+    useEffect(() => {
+        if (mobileMenuOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        // Cleanup on unmount
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [mobileMenuOpen]);
 
     const handleDelete = (id: string) => {
         if (confirm('Tem certeza que deseja excluir este projeto?')) {
@@ -220,14 +288,20 @@ export const AdminDashboard: React.FC = () => {
 
     const handleSettingsChange = (field: string, value: any) => {
         if (field.includes('.')) {
-            const [parent, child] = field.split('.');
-            setSettingsForm(prev => ({
-                ...prev,
-                [parent]: {
-                    ...(prev as any)[parent],
-                    [child]: value
-                }
-            }));
+            const parts = field.split('.');
+            if (parts.length === 2) {
+                const [parent, child] = parts;
+                setSettingsForm(prev => {
+                    const parentObj = (prev as any)[parent] || {};
+                    return {
+                        ...prev,
+                        [parent]: {
+                            ...parentObj,
+                            [child]: value
+                        }
+                    };
+                });
+            }
         } else {
             setSettingsForm(prev => ({ ...prev, [field]: value }));
         }
@@ -250,11 +324,16 @@ export const AdminDashboard: React.FC = () => {
     const saveSettings = async () => {
         setSaving(true);
         try {
-            updateSettings(settingsForm);
-            // Atualiza também o conteúdo caso tenha sido modificado
-            updateSiteContent(contentForm);
-            showToast('Configurações salvas.', 'success');
+            // Use unified persist function with all local form values to avoid race condition
+            const success = await persistAllSettings(contentForm, settingsForm, scheduleSettings);
+
+            if (success) {
+                showToast('Configurações salvas com sucesso!', 'success');
+            } else {
+                showToast('Erro ao salvar algumas configurações. Tente novamente.', 'error');
+            }
         } catch (err) {
+            console.error('Error saving settings:', err);
             showToast('Erro ao salvar configurações.', 'error');
         } finally {
             setSaving(false);
@@ -321,9 +400,9 @@ export const AdminDashboard: React.FC = () => {
         }
     };
 
-    const NavItem = ({ id, icon: Icon, label, count }: { id: typeof activeTab, icon: any, label: string, count?: number }) => (
+    const NavItem = ({ id, icon: Icon, label, count }: { id: AdminTab, icon: any, label: string, count?: number }) => (
         <button
-            onClick={() => { setActiveTab(id); setMobileMenuOpen(false); setSelectedClient(null); setCurrentAdminFolderId(null); }}
+            onClick={() => handleTabChange(id)}
             className={`flex items-center space-x-4 w-full p-4 rounded-xl transition duration-200 active:scale-95 relative ${activeTab === id ? 'bg-white text-black font-bold shadow-lg md:transform md:scale-105' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
         >
             <Icon className="w-5 h-5" />
@@ -335,7 +414,7 @@ export const AdminDashboard: React.FC = () => {
         </button>
     );
 
-    const unreadNotesCount = adminNotes.filter(n => n.status === 'new').length;
+    const unreadMessagesCount = messages.filter(m => m.status === 'new').length;
     const pendingAppointmentsCount = appointments.filter(a => a.status === 'pending').length;
 
     // Sorting appointments
@@ -418,22 +497,87 @@ export const AdminDashboard: React.FC = () => {
 
     const handleBlockImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, blockId: string) => {
         if (!e.target.files || e.target.files.length === 0) return;
+        const file = e.target.files[0];
+        const dataUrl = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.readAsDataURL(file);
+        });
+        setOfficeCropImage(dataUrl);
+        setOfficeCropFile(file);
+        setPendingOfficeBlockId(blockId);
+        setPendingOfficeGridIndex(null);
+        setOfficeCropModalOpen(true);
+        e.target.value = '';
+    };
+
+    const handleCroppedOfficeImage = async (file: File) => {
         try {
-            const url = await uploadToSupabase(e.target.files[0]);
-            updateOfficeBlock(blockId, 'content', url);
+            const url = await uploadToSupabase(file);
+            if (pendingOfficeBlockId && pendingOfficeGridIndex === null) {
+                updateOfficeBlock(pendingOfficeBlockId, 'content', url);
+            } else if (pendingOfficeBlockId && pendingOfficeGridIndex !== null) {
+                updateOfficeGridItem(pendingOfficeBlockId, pendingOfficeGridIndex, url);
+            }
+            showToast('Imagem otimizada e enviada!', 'success');
         } catch (err) {
             showToast('Erro ao enviar imagem', 'error');
         }
+        setOfficeCropModalOpen(false);
+        setPendingOfficeBlockId(null);
+        setPendingOfficeGridIndex(null);
     };
 
     const handleGridImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, blockId: string, index: number) => {
         if (!e.target.files || e.target.files.length === 0) return;
+        const file = e.target.files[0];
+        const dataUrl = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.readAsDataURL(file);
+        });
+        setOfficeCropImage(dataUrl);
+        setOfficeCropFile(file);
+        setPendingOfficeBlockId(blockId);
+        setPendingOfficeGridIndex(index);
+        setOfficeCropModalOpen(true);
+        e.target.value = '';
+    };
+
+    // --- About Image Upload with Crop ---
+    const handleAboutImageSelect = async (e: React.ChangeEvent<HTMLInputElement>, field: 'heroImage' | 'profileImage') => {
+        if (!e.target.files || e.target.files.length === 0) return;
+        const file = e.target.files[0];
+        const dataUrl = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.readAsDataURL(file);
+        });
+        setAboutCropImage(dataUrl);
+        setAboutCropFile(file);
+        setPendingAboutField(field);
+        setAboutCropModalOpen(true);
+        e.target.value = '';
+    };
+
+    const handleAboutCroppedImage = async (file: File) => {
         try {
-            const url = await uploadToSupabase(e.target.files[0]);
-            updateOfficeGridItem(blockId, index, url);
+            const url = await uploadToSupabase(file);
+            if (pendingAboutField) {
+                setContentForm(prev => ({
+                    ...prev,
+                    about: {
+                        ...prev.about,
+                        [pendingAboutField]: url
+                    }
+                }));
+            }
+            showToast('Imagem otimizada e enviada!', 'success');
         } catch (err) {
             showToast('Erro ao enviar imagem', 'error');
         }
+        setAboutCropModalOpen(false);
+        setPendingAboutField(null);
     };
 
     // --- Blocking Logic ---
@@ -492,14 +636,23 @@ export const AdminDashboard: React.FC = () => {
                 </button>
             </div>
 
+            {/* Mobile Overlay - Click to close sidebar */}
+            {mobileMenuOpen && (
+                <div
+                    className="md:hidden fixed inset-0 bg-black/50 z-30"
+                    onClick={() => setMobileMenuOpen(false)}
+                    aria-hidden="true"
+                />
+            )}
+
             {/* Sidebar */}
-            <aside className={`fixed md:relative z-40 w-64 min-h-screen bg-[#111] border-r border-gray-800 flex flex-col transition-transform duration-300 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} pt-20 md:pt-0`}>
-                <div className="p-8 hidden md:block">
+            <aside className={`fixed md:relative z-40 w-64 h-screen bg-[#111] border-r border-gray-800 flex flex-col transition-transform duration-300 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} pt-16 md:pt-0`}>
+                <div className="p-8 hidden md:block shrink-0">
                     <h1 className="text-2xl font-serif font-bold tracking-wider">Fran Siller<span className="text-accent">.</span></h1>
                     <p className="text-xs text-gray-500 uppercase tracking-widest mt-2">Painel Administrativo</p>
                 </div>
 
-                <nav className="flex-grow px-4 space-y-2">
+                <nav className="flex-grow px-4 space-y-2 overflow-y-auto pb-4">
                     <NavItem id="dashboard" icon={LayoutDashboard} label="Visão Geral" />
                     <NavItem id="agenda" icon={Calendar} label="Agenda" count={pendingAppointmentsCount} />
                     <NavItem id="projects" icon={FolderOpen} label="Projetos" />
@@ -507,13 +660,14 @@ export const AdminDashboard: React.FC = () => {
                     <NavItem id="clients" icon={Users} label="Clientes & Arquivos" />
                     <NavItem id="ai-config" icon={Brain} label="Inteligência Artificial" />
                     <NavItem id="budgets" icon={Receipt} label="Orçamentos" />
-                    <NavItem id="messages" icon={MessageSquare} label="Recados" count={unreadNotesCount} />
+                    <NavItem id="shop" icon={ShoppingBag} label="Loja" />
+                    <NavItem id="messages" icon={MessageSquare} label="Mensagens" count={unreadMessagesCount} />
                     <NavItem id="office" icon={MapPin} label="Escritório (Site)" />
                     <NavItem id="content" icon={FileText} label="Conteúdo Site" />
                     <NavItem id="settings" icon={Settings} label="Configurações" />
                 </nav>
 
-                <div className="p-4 border-t border-gray-800">
+                <div className="p-4 border-t border-gray-800 shrink-0">
                     <Link to="/" className="flex items-center space-x-3 w-full p-4 text-gray-400 hover:bg-white/5 hover:text-white rounded-xl transition mb-1">
                         <ArrowLeft className="w-5 h-5" />
                         <span>Voltar ao Site</span>
@@ -530,47 +684,253 @@ export const AdminDashboard: React.FC = () => {
                 <div className="p-6 md:p-10 max-w-7xl mx-auto min-h-screen">
 
                     {/* Dashboard View */}
-                    {activeTab === 'dashboard' && (
-                        <div className="animate-fadeIn">
-                            <h2 className="text-3xl font-serif font-bold mb-8 text-black">Bem-vinda, Fran.</h2>
+                    {activeTab === 'dashboard' && (() => {
+                        // Icon map for dynamic rendering
+                        const iconMap: Record<string, React.ElementType> = {
+                            LayoutDashboard, FolderOpen, Landmark, Calendar, Users, Brain, Receipt, MessageSquare, Mail, MapPin, FileText, Settings, ShoppingBag
+                        };
 
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-                                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div className="p-3 bg-black text-white rounded-xl"><FolderOpen className="w-6 h-6" /></div>
-                                    </div>
-                                    <h3 className="text-4xl font-serif font-bold mb-1 text-black">{projects.length}</h3>
-                                    <p className="text-gray-500 text-sm">Projetos Publicados</p>
+                        // Default widgets configuration
+                        const defaultWidgets: DashboardWidget[] = [
+                            { id: '1', tabId: 'projects', label: 'Projetos Publicados', icon: 'FolderOpen', bgColor: 'bg-black', order: 1, showCount: true, countKey: 'projects' },
+                            { id: '2', tabId: 'cultural', label: 'Projetos Culturais', icon: 'Landmark', bgColor: 'bg-red-600', order: 2, showCount: true, countKey: 'culturalProjects' },
+                            { id: '3', tabId: 'agenda', label: 'Agendamentos Ativos', icon: 'Calendar', bgColor: 'bg-purple-600', order: 3, showCount: true, countKey: 'appointments' },
+                            { id: '4', tabId: 'messages', label: 'Mensagens', icon: 'MessageSquare', bgColor: 'bg-accent', order: 4, showCount: true, countKey: 'messages' },
+                        ];
+
+                        // Get widgets from settings or use defaults
+                        const widgets = (settings.dashboardWidgets && settings.dashboardWidgets.length > 0)
+                            ? settings.dashboardWidgets
+                            : defaultWidgets;
+
+                        // Count values mapping
+                        const countValues: Record<string, number> = {
+                            projects: projects.length,
+                            culturalProjects: culturalProjects.length,
+                            appointments: appointments.filter(a => a.status !== 'cancelled').length,
+                            messages: messages.length,
+                            budgets: 0, // Would need to fetch budget count
+                        };
+
+                        // Available sidebar items for adding widgets
+                        const sidebarItems: { id: DashboardTabId; label: string; icon: string; bgColor: string; countKey?: string }[] = [
+                            { id: 'projects', label: 'Projetos Publicados', icon: 'FolderOpen', bgColor: 'bg-black', countKey: 'projects' },
+                            { id: 'cultural', label: 'Projetos Culturais', icon: 'Landmark', bgColor: 'bg-red-600', countKey: 'culturalProjects' },
+                            { id: 'agenda', label: 'Agendamentos', icon: 'Calendar', bgColor: 'bg-purple-600', countKey: 'appointments' },
+                            { id: 'messages', label: 'Mensagens', icon: 'MessageSquare', bgColor: 'bg-accent', countKey: 'messages' },
+                            { id: 'budgets', label: 'Orçamentos', icon: 'Receipt', bgColor: 'bg-green-600', countKey: 'budgets' },
+                            { id: 'shop', label: 'Loja', icon: 'ShoppingBag', bgColor: 'bg-amber-600' },
+                            { id: 'clients', label: 'Clientes & Arquivos', icon: 'Users', bgColor: 'bg-indigo-600' },
+                            { id: 'ai-config', label: 'Inteligência Artificial', icon: 'Brain', bgColor: 'bg-pink-600' },
+                            { id: 'office', label: 'Escritório', icon: 'MapPin', bgColor: 'bg-orange-600' },
+                            { id: 'content', label: 'Conteúdo Site', icon: 'FileText', bgColor: 'bg-teal-600' },
+                            { id: 'settings', label: 'Configurações', icon: 'Settings', bgColor: 'bg-gray-600' },
+                        ];
+
+                        // Add widget handler
+                        const handleAddWidget = (item: typeof sidebarItems[0]) => {
+                            const newWidget: DashboardWidget = {
+                                id: Date.now().toString(),
+                                tabId: item.id,
+                                label: item.label,
+                                icon: item.icon,
+                                bgColor: item.bgColor,
+                                order: widgets.length + 1,
+                                showCount: !!item.countKey,
+                                countKey: item.countKey as any,
+                            };
+                            const newWidgets = [...widgets, newWidget];
+                            handleSettingsChange('dashboardWidgets', newWidgets);
+                        };
+
+                        // Remove widget handler - moves widget from active to available
+                        const handleLocalRemoveWidget = (widgetId: string) => {
+                            setLocalEditingWidgets(prev => prev.filter(w => w.id !== widgetId));
+                        };
+
+                        // Add widget immediately (no selection needed)
+                        const handleLocalAddWidget = (item: typeof sidebarItems[0]) => {
+                            // Check if already exists
+                            if (localEditingWidgets.some(w => w.tabId === item.id)) return;
+
+                            const newWidget: DashboardWidget = {
+                                id: Date.now().toString(),
+                                tabId: item.id,
+                                label: item.label,
+                                icon: item.icon,
+                                bgColor: item.bgColor,
+                                order: localEditingWidgets.length + 1,
+                                showCount: !!item.countKey,
+                                countKey: item.countKey as any,
+                            };
+                            setLocalEditingWidgets(prev => [...prev, newWidget]);
+                        };
+
+                        // Save all changes at once
+                        const handleSaveAllChanges = async () => {
+                            const widgetsToSave = [...localEditingWidgets];
+                            // Update settings with new widgets
+                            const newSettings = { ...settings, dashboardWidgets: widgetsToSave };
+                            const success = await updateSettings(newSettings);
+                            if (success) {
+                                setShowEditDashboardModal(false);
+                                showToast('Widgets salvos com sucesso!', 'success');
+                            } else {
+                                showToast('Erro ao salvar widgets', 'error');
+                            }
+                        };
+
+                        // Get badge info for pending items
+                        const getBadge = (widget: DashboardWidget) => {
+                            if (widget.tabId === 'agenda' && pendingAppointmentsCount > 0) {
+                                return { text: 'Pendente', bgColor: 'bg-yellow-100', textColor: 'text-yellow-800' };
+                            }
+                            if (widget.tabId === 'messages' && unreadMessagesCount > 0) {
+                                return { text: 'Novas', bgColor: 'bg-red-100', textColor: 'text-red-800' };
+                            }
+                            return null;
+                        };
+
+                        return (
+                            <div className="animate-fadeIn">
+                                <div className="flex justify-between items-center mb-8">
+                                    <h2 className="text-3xl font-serif font-bold text-black">Bem-vinda, Fran.</h2>
+                                    <button
+                                        onClick={() => { setLocalEditingWidgets([...widgets]); setSelectedWidgetsToAdd([]); setShowEditDashboardModal(true); }}
+                                        className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm font-medium text-gray-700 transition"
+                                    >
+                                        <Edit2 className="w-4 h-4" />
+                                        Personalizar
+                                    </button>
                                 </div>
 
-                                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div className="p-3 bg-red-600 text-white rounded-xl"><Landmark className="w-6 h-6" /></div>
-                                    </div>
-                                    <h3 className="text-4xl font-serif font-bold mb-1 text-black">{culturalProjects.length}</h3>
-                                    <p className="text-gray-500 text-sm">Projetos Culturais</p>
+                                {/* Widgets Grid */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-12">
+                                    {widgets.sort((a, b) => a.order - b.order).map(widget => {
+                                        const IconComponent = iconMap[widget.icon] || LayoutDashboard;
+                                        const badge = getBadge(widget);
+                                        const count = widget.showCount && widget.countKey ? countValues[widget.countKey] : null;
+
+                                        return (
+                                            <button
+                                                key={widget.id}
+                                                onClick={() => handleTabChange(widget.tabId)}
+                                                className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all duration-200 text-left group cursor-pointer"
+                                            >
+                                                <div className="flex justify-between items-start mb-4">
+                                                    <div className={`p-3 ${widget.bgColor} text-white rounded-xl group-hover:scale-105 transition-transform`}>
+                                                        <IconComponent className="w-6 h-6" />
+                                                    </div>
+                                                    {badge && (
+                                                        <span className={`text-xs font-bold ${badge.bgColor} ${badge.textColor} px-2 py-1 rounded`}>
+                                                            {badge.text}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <h3 className="text-4xl font-serif font-bold mb-1 text-black">
+                                                    {count !== null ? count : '—'}
+                                                </h3>
+                                                <p className="text-gray-500 text-sm">{widget.label}</p>
+                                            </button>
+                                        );
+                                    })}
                                 </div>
 
-                                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div className="p-3 bg-purple-600 text-white rounded-xl"><Calendar className="w-6 h-6" /></div>
-                                        {pendingAppointmentsCount > 0 && <span className="text-xs font-bold bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Pendente</span>}
-                                    </div>
-                                    <h3 className="text-4xl font-serif font-bold mb-1 text-black">{appointments.filter(a => a.status !== 'cancelled').length}</h3>
-                                    <p className="text-gray-500 text-sm">Agendamentos Ativos</p>
-                                </div>
+                                {/* Edit Modal */}
+                                <AnimatePresence>
+                                    {showEditDashboardModal && (
+                                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                                            <motion.div
+                                                initial={{ scale: 0.9, opacity: 0 }}
+                                                animate={{ scale: 1, opacity: 1 }}
+                                                exit={{ scale: 0.9, opacity: 0 }}
+                                                className="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto"
+                                            >
+                                                <div className="flex justify-between items-center mb-6">
+                                                    <h3 className="font-bold text-xl">Personalizar Dashboard</h3>
+                                                    <button onClick={() => setShowEditDashboardModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+                                                        <X className="w-5 h-5" />
+                                                    </button>
+                                                </div>
 
-                                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div className="p-3 bg-accent text-black rounded-xl"><MessageSquare className="w-6 h-6" /></div>
-                                        {unreadNotesCount > 0 && <span className="text-xs font-bold bg-red-100 text-red-800 px-2 py-1 rounded">Novas</span>}
-                                    </div>
-                                    <h3 className="text-4xl font-serif font-bold mb-1 text-black">{adminNotes.length}</h3>
-                                    <p className="text-gray-500 text-sm">Mensagens</p>
-                                </div>
+                                                {/* Current Widgets */}
+                                                <div className="mb-6">
+                                                    <h4 className="text-sm font-bold uppercase text-gray-500 mb-3">Widgets Ativos</h4>
+                                                    <div className="space-y-2">
+                                                        {localEditingWidgets.length === 0 ? (
+                                                            <p className="text-gray-400 text-sm text-center py-4">Nenhum widget ativo. Adicione abaixo.</p>
+                                                        ) : (
+                                                            [...localEditingWidgets].sort((a, b) => a.order - b.order).map(widget => {
+                                                                const IconComponent = iconMap[widget.icon] || LayoutDashboard;
+                                                                return (
+                                                                    <div key={widget.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                                                                        <div className="flex items-center gap-3">
+                                                                            <div className={`p-2 ${widget.bgColor} text-white rounded-lg`}>
+                                                                                <IconComponent className="w-4 h-4" />
+                                                                            </div>
+                                                                            <span className="font-medium">{widget.label}</span>
+                                                                        </div>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleLocalRemoveWidget(widget.id)}
+                                                                            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition cursor-pointer"
+                                                                        >
+                                                                            <Trash2 className="w-4 h-4" />
+                                                                        </button>
+                                                                    </div>
+                                                                );
+                                                            })
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {/* Available Items - Click to add immediately */}
+                                                <div>
+                                                    <h4 className="text-sm font-bold uppercase text-gray-500 mb-3">Adicionar Widget</h4>
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        {sidebarItems
+                                                            .filter(item => !localEditingWidgets.some(w => w.tabId === item.id))
+                                                            .map(item => {
+                                                                const IconComponent = iconMap[item.icon] || LayoutDashboard;
+                                                                return (
+                                                                    <button
+                                                                        type="button"
+                                                                        key={item.id}
+                                                                        onClick={() => handleLocalAddWidget(item)}
+                                                                        className="flex items-center gap-2 p-3 border-2 border-dashed border-gray-200 rounded-xl hover:border-green-400 hover:bg-green-50 transition text-left group"
+                                                                    >
+                                                                        <div className={`p-2 ${item.bgColor} text-white rounded-lg group-hover:scale-105 transition-transform`}>
+                                                                            <IconComponent className="w-4 h-4" />
+                                                                        </div>
+                                                                        <span className="text-sm font-medium text-gray-600 group-hover:text-green-700">{item.label}</span>
+                                                                        <Plus className="w-4 h-4 ml-auto text-gray-300 group-hover:text-green-500 transition" />
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                    </div>
+                                                    {sidebarItems.filter(item => !localEditingWidgets.some(w => w.tabId === item.id)).length === 0 && (
+                                                        <p className="text-gray-400 text-sm text-center py-4">Todos os widgets já foram adicionados.</p>
+                                                    )}
+                                                </div>
+
+                                                {/* Save Button */}
+                                                <div className="mt-6 pt-4 border-t border-gray-100">
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleSaveAllChanges}
+                                                        className="w-full bg-black text-white py-3 rounded-xl font-bold hover:bg-gray-800 transition flex items-center justify-center gap-2"
+                                                    >
+                                                        <Save className="w-4 h-4" />
+                                                        Salvar Alterações
+                                                    </button>
+                                                </div>
+                                            </motion.div>
+                                        </div>
+                                    )}
+                                </AnimatePresence>
                             </div>
-                        </div>
-                    )}
+                        );
+                    })()}
 
                     {/* ... (Clients, Settings, AI Config, Projects, Cultural, Messages, Content, Office Views - Unchanged) ... */}
                     {/* I'm keeping the structure but focusing on the changed Agenda view below */}
@@ -734,6 +1094,13 @@ export const AdminDashboard: React.FC = () => {
                                     showToast={showToast}
                                 />
                             )}
+                        </div>
+                    )}
+
+                    {/* Shop Management View */}
+                    {activeTab === 'shop' && (
+                        <div className="animate-fadeIn">
+                            <ShopManagement onShowToast={showToast} />
                         </div>
                     )}
 
@@ -982,6 +1349,150 @@ export const AdminDashboard: React.FC = () => {
                                     <input value={contentForm.office.hoursDescription} onChange={e => handleOfficeChange('hoursDescription', e.target.value)} className="w-full border p-2 rounded mt-1 bg-white" />
                                 </div>
                             </div>
+
+                            {/* Social Links Section - Dynamic */}
+                            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 space-y-6 mt-8">
+                                <div className="flex justify-between items-center border-b pb-2">
+                                    <h3 className="font-bold text-lg flex items-center gap-2 text-black"><LinkIcon className="w-5 h-5" /> Redes Sociais</h3>
+                                    <button onClick={() => {
+                                        const newLink: SocialLink = { id: Date.now().toString(), platform: 'instagram', url: '' };
+                                        const currentLinks = contentForm.office.socialLinks || [];
+                                        handleOfficeChange('socialLinks', [...currentLinks, newLink]);
+                                    }} className="text-xs bg-black text-white px-3 py-1 rounded-full flex items-center gap-1 hover:bg-accent hover:text-black transition"><Plus className="w-3 h-3" /> Adicionar Rede</button>
+                                </div>
+                                <div className="space-y-3">
+                                    {(contentForm.office.socialLinks || []).length === 0 && (
+                                        <p className="text-center text-gray-400 py-4">Nenhuma rede social cadastrada. Adicione suas redes sociais para aparecer na página de contato.</p>
+                                    )}
+                                    {(contentForm.office.socialLinks || []).map((social, idx) => (
+                                        <div key={social.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl group">
+                                            <select
+                                                value={social.platform}
+                                                onChange={(e) => {
+                                                    const newLinks = [...(contentForm.office.socialLinks || [])];
+                                                    newLinks[idx] = { ...newLinks[idx], platform: e.target.value as SocialLink['platform'] };
+                                                    handleOfficeChange('socialLinks', newLinks);
+                                                }}
+                                                className="border rounded p-2 text-sm bg-white min-w-[130px]"
+                                            >
+                                                <option value="instagram">Instagram</option>
+                                                <option value="linkedin">LinkedIn</option>
+                                                <option value="facebook">Facebook</option>
+                                                <option value="youtube">YouTube</option>
+                                                <option value="twitter">Twitter/X</option>
+                                                <option value="tiktok">TikTok</option>
+                                                <option value="pinterest">Pinterest</option>
+                                                <option value="whatsapp">WhatsApp</option>
+                                                <option value="telegram">Telegram</option>
+                                                <option value="other">Outro</option>
+                                            </select>
+                                            <input
+                                                value={social.url}
+                                                onChange={(e) => {
+                                                    const newLinks = [...(contentForm.office.socialLinks || [])];
+                                                    newLinks[idx] = { ...newLinks[idx], url: e.target.value };
+                                                    handleOfficeChange('socialLinks', newLinks);
+                                                }}
+                                                className="flex-grow border p-2 rounded bg-white text-sm"
+                                                placeholder={social.platform === 'whatsapp' ? '5527999999999' : 'https://...'}
+                                            />
+                                            {social.platform === 'other' && (
+                                                <input
+                                                    value={social.label || ''}
+                                                    onChange={(e) => {
+                                                        const newLinks = [...(contentForm.office.socialLinks || [])];
+                                                        newLinks[idx] = { ...newLinks[idx], label: e.target.value };
+                                                        handleOfficeChange('socialLinks', newLinks);
+                                                    }}
+                                                    className="w-28 border p-2 rounded bg-white text-sm"
+                                                    placeholder="Nome"
+                                                />
+                                            )}
+                                            <button onClick={() => {
+                                                const newLinks = (contentForm.office.socialLinks || []).filter(s => s.id !== social.id);
+                                                handleOfficeChange('socialLinks', newLinks);
+                                            }} className="p-2 text-gray-400 hover:text-red-500 transition"><Trash2 className="w-4 h-4" /></button>
+                                        </div>
+                                    ))}
+                                </div>
+                                <p className="text-xs text-gray-400">As redes sociais serão exibidas automaticamente na página de contato após salvar.</p>
+                            </div>
+
+                            {/* Contact Form Subjects */}
+                            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 space-y-6 mt-8">
+                                <div className="flex justify-between items-center border-b pb-2">
+                                    <h3 className="font-bold text-lg flex items-center gap-2 text-black"><MessageSquare className="w-5 h-5" /> Assuntos do Formulário</h3>
+                                    <button onClick={() => {
+                                        const newSubjects = [...(contentForm.office.contactSubjects || ['Orçamento de Projeto', 'Dúvidas Gerais', 'Imprensa / Mídia', 'Parcerias']), 'Novo Assunto'];
+                                        handleOfficeChange('contactSubjects', newSubjects);
+                                    }} className="text-xs bg-black text-white px-3 py-1 rounded-full flex items-center gap-1 hover:bg-accent hover:text-black transition"><Plus className="w-3 h-3" /> Adicionar</button>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    {(contentForm.office.contactSubjects || ['Orçamento de Projeto', 'Dúvidas Gerais', 'Imprensa / Mídia', 'Parcerias']).map((subject, idx) => (
+                                        <div key={idx} className="flex items-center gap-1 bg-gray-100 rounded-full px-3 py-1 group">
+                                            <input
+                                                value={subject}
+                                                onChange={(e) => {
+                                                    const newSubjects = [...(contentForm.office.contactSubjects || ['Orçamento de Projeto', 'Dúvidas Gerais', 'Imprensa / Mídia', 'Parcerias'])];
+                                                    newSubjects[idx] = e.target.value;
+                                                    handleOfficeChange('contactSubjects', newSubjects);
+                                                }}
+                                                className="bg-transparent text-sm w-auto min-w-[100px] focus:outline-none"
+                                            />
+                                            <button onClick={() => {
+                                                const newSubjects = (contentForm.office.contactSubjects || []).filter((_, i) => i !== idx);
+                                                handleOfficeChange('contactSubjects', newSubjects);
+                                            }} className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition"><X className="w-3 h-3" /></button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* FAQ Section */}
+                            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 space-y-6 mt-8">
+                                <div className="flex justify-between items-center border-b pb-2">
+                                    <h3 className="font-bold text-lg flex items-center gap-2 text-black"><Info className="w-5 h-5" /> FAQ - Perguntas Frequentes</h3>
+                                    <button onClick={() => {
+                                        const newFaq = { id: Date.now().toString(), question: 'Nova pergunta?', answer: 'Resposta...' };
+                                        const currentFaq = contentForm.office.faqItems || [];
+                                        handleOfficeChange('faqItems', [...currentFaq, newFaq]);
+                                    }} className="text-xs bg-black text-white px-3 py-1 rounded-full flex items-center gap-1 hover:bg-accent hover:text-black transition"><Plus className="w-3 h-3" /> Adicionar</button>
+                                </div>
+                                <div className="space-y-4">
+                                    {(contentForm.office.faqItems || []).length === 0 && (
+                                        <p className="text-center text-gray-400 py-8">Nenhuma FAQ cadastrada. Adicione perguntas frequentes para a página de contato.</p>
+                                    )}
+                                    {(contentForm.office.faqItems || []).map((faq, idx) => (
+                                        <div key={faq.id} className="p-4 bg-gray-50 rounded-xl relative group border border-gray-100">
+                                            <input
+                                                value={faq.question}
+                                                onChange={(e) => {
+                                                    const newFaq = [...(contentForm.office.faqItems || [])];
+                                                    newFaq[idx] = { ...newFaq[idx], question: e.target.value };
+                                                    handleOfficeChange('faqItems', newFaq);
+                                                }}
+                                                className="w-full font-bold text-lg bg-transparent focus:outline-none mb-2"
+                                                placeholder="Pergunta?"
+                                            />
+                                            <textarea
+                                                value={faq.answer}
+                                                onChange={(e) => {
+                                                    const newFaq = [...(contentForm.office.faqItems || [])];
+                                                    newFaq[idx] = { ...newFaq[idx], answer: e.target.value };
+                                                    handleOfficeChange('faqItems', newFaq);
+                                                }}
+                                                className="w-full text-sm text-gray-600 bg-transparent focus:outline-none h-20 resize-none"
+                                                placeholder="Resposta..."
+                                            />
+                                            <button onClick={() => {
+                                                const newFaq = (contentForm.office.faqItems || []).filter(f => f.id !== faq.id);
+                                                handleOfficeChange('faqItems', newFaq);
+                                            }} className="absolute top-2 right-2 p-1 text-red-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition"><Trash2 className="w-4 h-4" /></button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
                             <div className="mt-8">
                                 <button onClick={saveSettings} disabled={saving} className="w-full bg-black text-white px-8 py-4 rounded-lg font-bold shadow-lg hover:bg-accent hover:text-black transition flex items-center justify-center gap-2 disabled:opacity-50">
                                     {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
@@ -997,19 +1508,75 @@ export const AdminDashboard: React.FC = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 space-y-6">
                                     <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-black border-b pb-2"><Bot className="w-5 h-5" /> Configuração do Modelo</h3>
+
+                                    {/* Provider Selector */}
                                     <div>
-                                        <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Modelo LLM</label>
-                                        <select
-                                            value={settingsForm.aiConfig.model}
-                                            onChange={(e) => handleSettingsChange('aiConfig.model', e.target.value)}
-                                            className="w-full border p-3 rounded bg-white text-black focus:outline-none focus:border-black"
-                                        >
-                                            <option value="gemini-2.5-flash">Gemini 2.5 Flash (Padrão)</option>
-                                            <option value="gemini-1.5-pro">Gemini 1.5 Pro (Avançado)</option>
-                                            <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite (Econômico)</option>
-                                            <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite (Econômico)</option>
-                                        </select>
+                                        <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Provedor de IA</label>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => {
+                                                    handleSettingsChange('aiConfig.provider', 'gemini');
+                                                }}
+                                                className={`flex-1 p-4 rounded-xl border-2 transition-all ${settingsForm.aiConfig.provider === 'gemini'
+                                                    ? 'border-black bg-black text-white'
+                                                    : 'border-gray-200 hover:border-gray-400'
+                                                    }`}
+                                            >
+                                                <div className="font-bold">Google Gemini</div>
+                                                <div className="text-xs opacity-70">Nativo Google AI</div>
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    handleSettingsChange('aiConfig.provider', 'groq');
+                                                }}
+                                                className={`flex-1 p-4 rounded-xl border-2 transition-all ${settingsForm.aiConfig.provider === 'groq'
+                                                    ? 'border-black bg-black text-white'
+                                                    : 'border-gray-200 hover:border-gray-400'
+                                                    }`}
+                                            >
+                                                <div className="font-bold">Groq AI</div>
+                                                <div className="text-xs opacity-70">Ultra Rápido, 100% Free</div>
+                                            </button>
+                                        </div>
                                     </div>
+
+                                    {/* Gemini Model Selector - Only show if provider is gemini */}
+                                    {settingsForm.aiConfig.provider === 'gemini' && (
+                                        <div>
+                                            <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Modelo Gemini</label>
+                                            <select
+                                                value={settingsForm.aiConfig.gemini?.model || 'gemini-2.5-flash'}
+                                                onChange={(e) => handleSettingsChange('aiConfig.gemini', { ...settingsForm.aiConfig.gemini, model: e.target.value })}
+                                                className="w-full border p-3 rounded bg-white text-black focus:outline-none focus:border-black"
+                                            >
+                                                <option value="gemini-2.5-flash">Gemini 2.5 Flash (Recomendado)</option>
+                                                <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite (Econômico)</option>
+                                                <option value="gemini-3-pro-preview">Gemini 3 Pro Preview (Mais Inteligente)</option>
+                                                <option value="gemini-2.5-pro">Gemini 2.5 Pro (Raciocínio)</option>
+                                                <option value="gemini-2.0-flash">Gemini 2.0 Flash (Antigo)</option>
+                                                <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite (Econômico Antigo)</option>
+                                            </select>
+                                        </div>
+                                    )}
+
+                                    {/* Groq Model Selector - Only show if provider is groq */}
+                                    {settingsForm.aiConfig.provider === 'groq' && (
+                                        <div>
+                                            <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Modelo Groq</label>
+                                            <select
+                                                value={settingsForm.aiConfig.groq?.model || 'llama-3.3-70b-versatile'}
+                                                onChange={(e) => handleSettingsChange('aiConfig.groq', { ...settingsForm.aiConfig.groq, model: e.target.value })}
+                                                className="w-full border p-3 rounded bg-white text-black focus:outline-none focus:border-black"
+                                            >
+                                                <option value="llama-3.3-70b-versatile">Llama 3.3 70B (Recomendado)</option>
+                                                <option value="llama-3.1-8b-instant">Llama 3.1 8B (Melhor Rate Limit)</option>
+                                                <option value="qwen/qwen3-32b">Qwen3 32B (Alternativo)</option>
+                                            </select>
+                                            <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
+                                                <Check className="w-3 h-3" /> 100% Gratuito • 14.400 req/dia
+                                            </p>
+                                        </div>
+                                    )}
                                     <div>
                                         <div className="flex justify-between items-center mb-2">
                                             <label className="block text-xs font-bold uppercase text-gray-500">Temperatura ({settingsForm.aiConfig.temperature || 0.7})</label>
@@ -1036,6 +1603,26 @@ export const AdminDashboard: React.FC = () => {
                                             className="w-full border p-3 rounded h-20 bg-white text-black focus:outline-none focus:border-black resize-none text-sm"
                                             placeholder="Olá {name}..."
                                         />
+                                    </div>
+                                    <div className="pt-4 border-t mt-4">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <label className="block text-xs font-bold uppercase text-gray-500">Atendimento Humano (Brevo)</label>
+                                            <div className="flex items-center gap-2">
+                                                <span className={`text-xs font-bold ${settingsForm.chatbotConfig?.transferToHumanEnabled ? 'text-green-600' : 'text-gray-400'}`}>
+                                                    {settingsForm.chatbotConfig?.transferToHumanEnabled ? 'ATIVADO (ONLINE)' : 'DESATIVADO (OFFLINE)'}
+                                                </span>
+                                                <button
+                                                    onClick={() => handleSettingsChange('chatbotConfig.transferToHumanEnabled', !settingsForm.chatbotConfig?.transferToHumanEnabled)}
+                                                    className={`w-12 h-6 rounded-full transition-colors relative ${settingsForm.chatbotConfig?.transferToHumanEnabled ? 'bg-black' : 'bg-gray-200'}`}
+                                                >
+                                                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${settingsForm.chatbotConfig?.transferToHumanEnabled ? 'left-7' : 'left-1'}`}></div>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <p className="text-xs text-gray-400">
+                                            Se ativado: IA aceita transferir para humano. <br />
+                                            Se desativado: IA informa indisponibilidade.
+                                        </p>
                                     </div>
                                 </div>
                                 <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 space-y-6">
@@ -1081,6 +1668,140 @@ export const AdminDashboard: React.FC = () => {
                                     <div className="text-center py-8 text-gray-400">Nenhum feedback negativo registrado.</div>
                                 )}
                             </div>
+
+                            {/* Quick Actions Configuration */}
+                            <div className="mt-8 bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+                                <div className="flex justify-between items-center border-b pb-4 mb-6">
+                                    <h3 className="font-bold text-lg flex items-center gap-2 text-black"><MessageSquare className="w-5 h-5" /> Botões de Ação Rápida</h3>
+                                    <button
+                                        onClick={() => {
+                                            const newAction = {
+                                                id: Date.now().toString(),
+                                                label: 'Novo Botão',
+                                                message: 'Mensagem enviada ao clicar',
+                                                icon: 'MessageSquare',
+                                                order: (settingsForm.chatbotConfig?.quickActions?.length || 0) + 1,
+                                                active: true
+                                            };
+                                            const currentActions = settingsForm.chatbotConfig?.quickActions || [];
+                                            handleSettingsChange('chatbotConfig.quickActions', [...currentActions, newAction]);
+                                        }}
+                                        className="text-xs bg-black text-white px-3 py-1.5 rounded-full flex items-center gap-1 hover:bg-accent hover:text-black transition"
+                                    ><Plus className="w-3 h-3" /> Adicionar Botão</button>
+                                </div>
+
+                                <div className="mb-4">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={settingsForm.chatbotConfig?.showQuickActionsOnOpen ?? true}
+                                            onChange={(e) => handleSettingsChange('chatbotConfig.showQuickActionsOnOpen', e.target.checked)}
+                                            className="w-4 h-4 accent-black"
+                                        />
+                                        <span className="text-sm">Mostrar botões ao abrir o chat</span>
+                                    </label>
+                                </div>
+
+                                <div className="space-y-3">
+                                    {(!settingsForm.chatbotConfig?.quickActions || settingsForm.chatbotConfig.quickActions.length === 0) && (
+                                        <div className="text-center py-8 text-gray-400 border-2 border-dashed border-gray-200 rounded-xl">
+                                            Nenhum botão configurado. Adicione botões de ação rápida para o chatbot.
+                                        </div>
+                                    )}
+                                    {settingsForm.chatbotConfig?.quickActions?.sort((a, b) => a.order - b.order).map((action, idx) => (
+                                        <div key={action.id} className={`flex items-center gap-4 p-4 rounded-xl border transition ${action.active ? 'bg-gray-50 border-gray-200' : 'bg-gray-100 border-gray-300 opacity-60'}`}>
+                                            <div className="flex flex-col gap-1">
+                                                <button
+                                                    onClick={() => {
+                                                        if (idx > 0) {
+                                                            const newActions = [...(settingsForm.chatbotConfig?.quickActions || [])];
+                                                            const temp = newActions[idx].order;
+                                                            newActions[idx].order = newActions[idx - 1].order;
+                                                            newActions[idx - 1].order = temp;
+                                                            handleSettingsChange('chatbotConfig.quickActions', newActions);
+                                                        }
+                                                    }}
+                                                    disabled={idx === 0}
+                                                    className="p-1 hover:bg-white rounded disabled:opacity-30"
+                                                ><ArrowUp className="w-3 h-3" /></button>
+                                                <button
+                                                    onClick={() => {
+                                                        const actions = settingsForm.chatbotConfig?.quickActions || [];
+                                                        if (idx < actions.length - 1) {
+                                                            const newActions = [...actions];
+                                                            const temp = newActions[idx].order;
+                                                            newActions[idx].order = newActions[idx + 1].order;
+                                                            newActions[idx + 1].order = temp;
+                                                            handleSettingsChange('chatbotConfig.quickActions', newActions);
+                                                        }
+                                                    }}
+                                                    disabled={idx === (settingsForm.chatbotConfig?.quickActions?.length || 0) - 1}
+                                                    className="p-1 hover:bg-white rounded disabled:opacity-30"
+                                                ><ArrowDown className="w-3 h-3" /></button>
+                                            </div>
+                                            <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="text-[10px] font-bold uppercase text-gray-500 block mb-1">Texto do Botão</label>
+                                                    <input
+                                                        value={action.label}
+                                                        onChange={(e) => {
+                                                            const newActions = [...(settingsForm.chatbotConfig?.quickActions || [])];
+                                                            const actionIdx = newActions.findIndex(a => a.id === action.id);
+                                                            if (actionIdx !== -1) {
+                                                                newActions[actionIdx] = { ...newActions[actionIdx], label: e.target.value };
+                                                                handleSettingsChange('chatbotConfig.quickActions', newActions);
+                                                            }
+                                                        }}
+                                                        className="w-full border p-2 rounded bg-white text-sm focus:outline-none focus:border-black"
+                                                        placeholder="Agendar Reunião"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[10px] font-bold uppercase text-gray-500 block mb-1">Mensagem Enviada</label>
+                                                    <input
+                                                        value={action.message}
+                                                        onChange={(e) => {
+                                                            const newActions = [...(settingsForm.chatbotConfig?.quickActions || [])];
+                                                            const actionIdx = newActions.findIndex(a => a.id === action.id);
+                                                            if (actionIdx !== -1) {
+                                                                newActions[actionIdx] = { ...newActions[actionIdx], message: e.target.value };
+                                                                handleSettingsChange('chatbotConfig.quickActions', newActions);
+                                                            }
+                                                        }}
+                                                        className="w-full border p-2 rounded bg-white text-sm focus:outline-none focus:border-black"
+                                                        placeholder="Gostaria de agendar uma reunião"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => {
+                                                        const newActions = [...(settingsForm.chatbotConfig?.quickActions || [])];
+                                                        const actionIdx = newActions.findIndex(a => a.id === action.id);
+                                                        if (actionIdx !== -1) {
+                                                            newActions[actionIdx] = { ...newActions[actionIdx], active: !newActions[actionIdx].active };
+                                                            handleSettingsChange('chatbotConfig.quickActions', newActions);
+                                                        }
+                                                    }}
+                                                    className={`p-2 rounded-full transition ${action.active ? 'bg-green-100 text-green-600' : 'bg-gray-200 text-gray-400'}`}
+                                                    title={action.active ? 'Desativar' : 'Ativar'}
+                                                >
+                                                    {action.active ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        const newActions = (settingsForm.chatbotConfig?.quickActions || []).filter(a => a.id !== action.id);
+                                                        handleSettingsChange('chatbotConfig.quickActions', newActions);
+                                                    }}
+                                                    className="p-2 text-gray-400 hover:text-red-500 transition"
+                                                ><Trash2 className="w-4 h-4" /></button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <p className="text-xs text-gray-400 mt-4">Os botões aparecem no início da conversa e desaparecem após o usuário interagir.</p>
+                            </div>
+
                             <div className="mt-8">
                                 <button onClick={saveSettings} disabled={saving} className="w-full bg-black text-white px-8 py-4 rounded-lg font-bold shadow-lg hover:bg-accent hover:text-black transition flex items-center justify-center gap-2 disabled:opacity-50">
                                     {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
@@ -1106,6 +1827,7 @@ export const AdminDashboard: React.FC = () => {
                                             <th className="text-left p-6 text-xs font-bold uppercase text-gray-600">Projeto</th>
                                             <th className="text-left p-6 text-xs font-bold uppercase text-gray-600 hidden md:table-cell">Categoria</th>
                                             <th className="text-left p-6 text-xs font-bold uppercase text-gray-600 hidden md:table-cell">Local</th>
+                                            <th className="text-center p-6 text-xs font-bold uppercase text-gray-600 hidden sm:table-cell" title="Exibir na Home">Home</th>
                                             <th className="text-right p-6 text-xs font-bold uppercase text-gray-600">Ações</th>
                                         </tr>
                                     </thead>
@@ -1120,6 +1842,18 @@ export const AdminDashboard: React.FC = () => {
                                                 </td>
                                                 <td className="p-6 text-sm text-gray-600 hidden md:table-cell">{project.category}</td>
                                                 <td className="p-6 text-sm text-gray-600 hidden md:table-cell">{project.location}</td>
+                                                <td className="p-6 text-center hidden sm:table-cell">
+                                                    <button
+                                                        onClick={() => {
+                                                            updateProject({ ...project, featured: !project.featured });
+                                                            showToast(project.featured ? 'Removido da Home' : 'Adicionado à Home', 'success');
+                                                        }}
+                                                        className={`p-2 rounded-lg transition ${project.featured ? 'text-yellow-500 bg-yellow-50 hover:bg-yellow-100' : 'text-gray-300 hover:text-yellow-400 hover:bg-gray-100'}`}
+                                                        title={project.featured ? 'Remover da Home' : 'Exibir na Home'}
+                                                    >
+                                                        <Star className={`w-5 h-5 ${project.featured ? 'fill-yellow-400' : ''}`} />
+                                                    </button>
+                                                </td>
                                                 <td className="p-6 text-right">
                                                     <div className="flex justify-end space-x-2">
                                                         <Link to={`/admin/project/edit/${project.id}`} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition"><Edit2 className="w-4 h-4" /></Link>
@@ -1150,13 +1884,14 @@ export const AdminDashboard: React.FC = () => {
                                             <th className="text-left p-6 text-xs font-bold uppercase text-gray-600">Projeto</th>
                                             <th className="text-left p-6 text-xs font-bold uppercase text-gray-600 hidden md:table-cell">Categoria</th>
                                             <th className="text-left p-6 text-xs font-bold uppercase text-gray-600 hidden md:table-cell">Parceiros</th>
+                                            <th className="text-center p-6 text-xs font-bold uppercase text-gray-600 hidden sm:table-cell" title="Exibir na Home">Home</th>
                                             <th className="text-right p-6 text-xs font-bold uppercase text-gray-600">Ações</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100">
                                         {culturalProjects.length === 0 ? (
                                             <tr>
-                                                <td colSpan={4} className="p-8 text-center text-gray-400">Nenhum projeto cultural cadastrado.</td>
+                                                <td colSpan={5} className="p-8 text-center text-gray-400">Nenhum projeto cultural cadastrado.</td>
                                             </tr>
                                         ) : (
                                             culturalProjects.map(project => (
@@ -1169,6 +1904,18 @@ export const AdminDashboard: React.FC = () => {
                                                     </td>
                                                     <td className="p-6 text-sm text-gray-600 hidden md:table-cell">{project.category}</td>
                                                     <td className="p-6 text-sm text-gray-600 hidden md:table-cell">{project.partners || '-'}</td>
+                                                    <td className="p-6 text-center hidden sm:table-cell">
+                                                        <button
+                                                            onClick={() => {
+                                                                updateCulturalProject({ ...project, featured: !project.featured });
+                                                                showToast(project.featured ? 'Removido da Home' : 'Adicionado à Home', 'success');
+                                                            }}
+                                                            className={`p-2 rounded-lg transition ${project.featured ? 'text-yellow-500 bg-yellow-50 hover:bg-yellow-100' : 'text-gray-300 hover:text-yellow-400 hover:bg-gray-100'}`}
+                                                            title={project.featured ? 'Remover da Home' : 'Exibir na Home'}
+                                                        >
+                                                            <Star className={`w-5 h-5 ${project.featured ? 'fill-yellow-400' : ''}`} />
+                                                        </button>
+                                                    </td>
                                                     <td className="p-6 text-right">
                                                         <div className="flex justify-end space-x-2">
                                                             <Link to={`/admin/cultural/edit/${project.id}`} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition"><Edit2 className="w-4 h-4" /></Link>
@@ -1185,44 +1932,10 @@ export const AdminDashboard: React.FC = () => {
                     )}
 
                     {activeTab === 'messages' && (
-                        <div className="animate-fadeIn">
-                            <h2 className="text-3xl font-serif font-bold mb-8 text-black">Central de Recados</h2>
-                            <div className="grid grid-cols-1 gap-6">
-                                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                                    <div className="p-6 border-b border-gray-100 bg-gray-50">
-                                        <h3 className="font-bold text-lg flex items-center gap-2 text-black"><MessageSquare className="w-5 h-5" /> Recados do Chatbot</h3>
-                                    </div>
-                                    <div className="divide-y divide-gray-100">
-                                        {adminNotes.length === 0 ? (
-                                            <div className="p-8 text-center text-gray-400">Nenhuma mensagem nova.</div>
-                                        ) : (
-                                            adminNotes.map(note => (
-                                                <div key={note.id} className={`p-6 hover:bg-gray-50 transition flex flex-col md:flex-row gap-4 ${note.status === 'new' ? 'bg-blue-50/30' : ''}`}>
-                                                    <div className="flex-grow">
-                                                        <div className="flex justify-between items-start mb-2">
-                                                            <div>
-                                                                <span className="font-bold text-lg text-black">{note.userName}</span>
-                                                                <span className="text-sm text-gray-500 ml-2">({note.userContact})</span>
-                                                            </div>
-                                                            <span className="text-xs text-gray-400 bg-white border border-gray-200 px-2 py-1 rounded">{new Date(note.date + 'T00:00:00').toLocaleDateString('pt-BR')}</span>
-                                                        </div>
-                                                        <p className="text-gray-700 leading-relaxed">{note.message}</p>
-                                                        <span className="text-xs text-gray-400 mt-2 block uppercase tracking-wide">Via {note.source === 'chatbot' ? 'Assistente Virtual' : 'Formulário'}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2 md:flex-col">
-                                                        {note.status === 'new' && (
-                                                            <button onClick={() => markNoteAsRead(note.id)} className="p-2 bg-green-100 text-green-600 rounded-full hover:bg-green-200 transition" title="Marcar como lido"><Check className="w-4 h-4" /></button>
-                                                        )}
-                                                        <button onClick={() => deleteAdminNote(note.id)} className="p-2 bg-gray-100 text-gray-400 rounded-full hover:bg-red-100 hover:text-red-500 transition" title="Excluir"><Trash2 className="w-4 h-4" /></button>
-                                                    </div>
-                                                </div>
-                                            ))
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <MessagesDashboard />
                     )}
+
+
 
                     {activeTab === 'content' && (
                         <div className="animate-fadeIn max-w-4xl">
@@ -1230,6 +1943,48 @@ export const AdminDashboard: React.FC = () => {
                             <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 mb-8 space-y-12">
                                 <div>
                                     <h3 className="font-bold text-xl mb-4 text-black border-b border-gray-100 pb-2">Página Sobre (Bio)</h3>
+
+                                    {/* Imagens da Página About */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                                        {/* Hero Image */}
+                                        <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                            <label className="block text-xs font-bold uppercase text-gray-500 mb-3">Hero Image (Parallax)</label>
+                                            <div className="aspect-video relative rounded-lg overflow-hidden bg-gray-200 mb-3">
+                                                {contentForm.about.heroImage ? (
+                                                    <img src={contentForm.about.heroImage} alt="Hero" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <div className="flex items-center justify-center h-full text-gray-400">
+                                                        <ImageIcon className="w-8 h-8" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <label className="flex items-center justify-center gap-2 px-4 py-2 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition cursor-pointer">
+                                                <Upload className="w-4 h-4" />
+                                                Alterar Imagem
+                                                <input type="file" accept="image/*" onChange={(e) => handleAboutImageSelect(e, 'heroImage')} className="hidden" />
+                                            </label>
+                                        </div>
+
+                                        {/* Profile Image */}
+                                        <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                            <label className="block text-xs font-bold uppercase text-gray-500 mb-3">Foto do Perfil (Fran)</label>
+                                            <div className="aspect-[3/4] relative rounded-lg overflow-hidden bg-gray-200 mb-3 max-h-48 mx-auto">
+                                                {contentForm.about.profileImage ? (
+                                                    <img src={contentForm.about.profileImage} alt="Profile" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <div className="flex items-center justify-center h-full text-gray-400">
+                                                        <ImageIcon className="w-8 h-8" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <label className="flex items-center justify-center gap-2 px-4 py-2 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition cursor-pointer">
+                                                <Upload className="w-4 h-4" />
+                                                Alterar Foto
+                                                <input type="file" accept="image/*" onChange={(e) => handleAboutImageSelect(e, 'profileImage')} className="hidden" />
+                                            </label>
+                                        </div>
+                                    </div>
+
                                     <div>
                                         <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Bio Principal</label>
                                         <textarea name="bio" value={contentForm.about.bio} onChange={handleContentChange} className="w-full border p-3 rounded h-40 bg-white text-black" />
@@ -1279,6 +2034,168 @@ export const AdminDashboard: React.FC = () => {
                                         ))}
                                     </div>
                                 </div>
+
+                                {/* Parallax Projects for About Page */}
+                                <div>
+                                    <div className="flex justify-between items-center mb-4 border-b border-gray-100 pb-2">
+                                        <div>
+                                            <h3 className="font-bold text-xl text-black">Projetos em Destaque (Parallax)</h3>
+                                            <p className="text-xs text-gray-400 mt-1">Projetos que aparecem flutuando na página Sobre</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Selected Projects */}
+                                    <div className="mb-6">
+                                        <p className="text-xs font-bold uppercase text-gray-500 mb-3">Projetos Selecionados ({((contentForm.about as any).parallaxProjects || []).length}/4)</p>
+                                        {((contentForm.about as any).parallaxProjects || []).length === 0 ? (
+                                            <p className="text-sm text-gray-400 italic py-4 text-center bg-gray-50 rounded-lg">Nenhum projeto selecionado. Adicione abaixo.</p>
+                                        ) : (
+                                            <div className="flex flex-wrap gap-3">
+                                                {((contentForm.about as any).parallaxProjects || []).map((p: { id: string; type: 'project' | 'cultural' }, idx: number) => {
+                                                    const source = p.type === 'cultural' ? culturalProjects : projects;
+                                                    const project = source.find(proj => proj.id === p.id);
+                                                    if (!project) return null;
+                                                    return (
+                                                        <div key={p.id} className="relative group">
+                                                            <div className="w-24 h-24 rounded-lg overflow-hidden border-2 border-accent shadow-lg">
+                                                                <img src={project.image} alt={project.title} className="w-full h-full object-cover" />
+                                                            </div>
+                                                            <span className={`absolute -top-2 -left-2 text-[10px] font-bold px-2 py-0.5 rounded-full ${p.type === 'cultural' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>
+                                                                {p.type === 'cultural' ? 'Cultural' : 'Portfólio'}
+                                                            </span>
+                                                            <button
+                                                                onClick={() => {
+                                                                    const newList = ((contentForm.about as any).parallaxProjects || []).filter((_: any, i: number) => i !== idx);
+                                                                    setContentForm(prev => ({
+                                                                        ...prev,
+                                                                        about: { ...prev.about, parallaxProjects: newList }
+                                                                    }));
+                                                                }}
+                                                                className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition"
+                                                            >
+                                                                <X className="w-3 h-3" />
+                                                            </button>
+                                                            <p className="text-[10px] text-center mt-1 truncate w-24 font-medium">{project.title}</p>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Available Projects */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {/* Portfolio Projects */}
+                                        <div>
+                                            <p className="text-xs font-bold uppercase text-gray-500 mb-3 flex items-center gap-2">
+                                                <span className="w-2 h-2 bg-blue-500 rounded-full"></span> Portfólio
+                                            </p>
+                                            <div className="max-h-60 overflow-y-auto space-y-2 pr-2">
+                                                {projects.map(project => {
+                                                    const isSelected = ((contentForm.about as any).parallaxProjects || []).some((p: any) => p.id === project.id && p.type === 'project');
+                                                    return (
+                                                        <div
+                                                            key={project.id}
+                                                            onClick={() => {
+                                                                const currentList = (contentForm.about as any).parallaxProjects || [];
+                                                                if (isSelected) {
+                                                                    // Remove
+                                                                    const newList = currentList.filter((p: any) => !(p.id === project.id && p.type === 'project'));
+                                                                    setContentForm(prev => ({
+                                                                        ...prev,
+                                                                        about: { ...prev.about, parallaxProjects: newList }
+                                                                    }));
+                                                                    showToast(`${project.title} removido`, 'info');
+                                                                } else {
+                                                                    // Max 4 projects
+                                                                    if (currentList.length >= 4) {
+                                                                        showToast('Máximo de 4 projetos permitido', 'error');
+                                                                        return;
+                                                                    }
+                                                                    // Add
+                                                                    const newItem = { id: project.id, type: 'project' as const };
+                                                                    setContentForm(prev => ({
+                                                                        ...prev,
+                                                                        about: { ...prev.about, parallaxProjects: [...currentList, newItem] }
+                                                                    }));
+                                                                    showToast(`${project.title} adicionado`, 'success');
+                                                                }
+                                                            }}
+                                                            className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all duration-200 ${isSelected ? 'bg-blue-50 border-2 border-blue-300 scale-[1.02]' : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent hover:scale-[1.01]'}`}
+                                                        >
+                                                            <img src={project.image} alt="" className="w-10 h-10 rounded object-cover" />
+                                                            <div className="flex-grow min-w-0">
+                                                                <p className="text-sm font-bold truncate">{project.title}</p>
+                                                                <p className="text-[10px] text-gray-400">{project.category}</p>
+                                                            </div>
+                                                            {isSelected ? (
+                                                                <Check className="w-4 h-4 text-blue-500" />
+                                                            ) : (
+                                                                <Plus className="w-4 h-4 text-gray-300" />
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        {/* Cultural Projects */}
+                                        <div>
+                                            <p className="text-xs font-bold uppercase text-gray-500 mb-3 flex items-center gap-2">
+                                                <span className="w-2 h-2 bg-purple-500 rounded-full"></span> Culturais
+                                            </p>
+                                            <div className="max-h-60 overflow-y-auto space-y-2 pr-2">
+                                                {culturalProjects.map(project => {
+                                                    const isSelected = ((contentForm.about as any).parallaxProjects || []).some((p: any) => p.id === project.id && p.type === 'cultural');
+                                                    return (
+                                                        <div
+                                                            key={project.id}
+                                                            onClick={() => {
+                                                                const currentList = (contentForm.about as any).parallaxProjects || [];
+                                                                if (isSelected) {
+                                                                    // Remove
+                                                                    const newList = currentList.filter((p: any) => !(p.id === project.id && p.type === 'cultural'));
+                                                                    setContentForm(prev => ({
+                                                                        ...prev,
+                                                                        about: { ...prev.about, parallaxProjects: newList }
+                                                                    }));
+                                                                    showToast(`${project.title} removido`, 'info');
+                                                                } else {
+                                                                    // Max 4 projects
+                                                                    if (currentList.length >= 4) {
+                                                                        showToast('Máximo de 4 projetos permitido', 'error');
+                                                                        return;
+                                                                    }
+                                                                    // Add
+                                                                    const newItem = { id: project.id, type: 'cultural' as const };
+                                                                    setContentForm(prev => ({
+                                                                        ...prev,
+                                                                        about: { ...prev.about, parallaxProjects: [...currentList, newItem] }
+                                                                    }));
+                                                                    showToast(`${project.title} adicionado`, 'success');
+                                                                }
+                                                            }}
+                                                            className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all duration-200 ${isSelected ? 'bg-purple-50 border-2 border-purple-300 scale-[1.02]' : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent hover:scale-[1.01]'}`}
+                                                        >
+                                                            <img src={project.image} alt="" className="w-10 h-10 rounded object-cover" />
+                                                            <div className="flex-grow min-w-0">
+                                                                <p className="text-sm font-bold truncate">{project.title}</p>
+                                                                <p className="text-[10px] text-gray-400">{project.category}</p>
+                                                            </div>
+                                                            {isSelected ? (
+                                                                <Check className="w-4 h-4 text-purple-500" />
+                                                            ) : (
+                                                                <Plus className="w-4 h-4 text-gray-300" />
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-gray-400 mt-4">Clique nos projetos para adicionar ao parallax. Máximo: 4 projetos.</p>
+                                </div>
+
                                 <div className="mt-6 pt-6 border-t border-gray-100">
                                     <button onClick={saveContent} disabled={saving} className="w-full md:w-auto bg-green-500 text-white px-8 py-4 rounded-full font-bold shadow-lg hover:bg-green-600 transition flex items-center justify-center gap-2 disabled:opacity-50">
                                         {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
@@ -1405,6 +2322,38 @@ export const AdminDashboard: React.FC = () => {
 
                 </div>
             </main>
+
+            {/* Office Crop Modal */}
+            <ImageCropModal
+                image={officeCropImage}
+                originalFile={officeCropFile || undefined}
+                isOpen={officeCropModalOpen}
+                onClose={() => {
+                    setOfficeCropModalOpen(false);
+                    setPendingOfficeBlockId(null);
+                    setPendingOfficeGridIndex(null);
+                }}
+                onCropComplete={handleCroppedOfficeImage}
+                aspect={null}
+                preset="projectGallery"
+                requireCrop={false}
+                showAspectSelector={true}
+                title="Ajustar Imagem do Escritório"
+            />
+
+            {/* About Image Crop Modal */}
+            <ImageCropModal
+                image={aboutCropImage}
+                originalFile={aboutCropFile || undefined}
+                isOpen={aboutCropModalOpen}
+                onClose={() => { setAboutCropModalOpen(false); setPendingAboutField(null); }}
+                onCropComplete={handleAboutCroppedImage}
+                aspect={pendingAboutField === 'profileImage' ? 3 / 4 : 16 / 9}
+                preset={pendingAboutField === 'profileImage' ? 'profile' : 'hero'}
+                requireCrop={false}
+                showAspectSelector={true}
+                title={pendingAboutField === 'profileImage' ? 'Ajustar Foto do Perfil' : 'Ajustar Hero Image'}
+            />
         </div>
     );
 };

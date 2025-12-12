@@ -3,12 +3,12 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, Link } from 'react-router-dom';
 import { useProjects } from '../context/ProjectContext';
-import { Heart, ArrowLeft, X, ChevronLeft, ChevronRight, Landmark } from 'lucide-react';
+import { Heart, ArrowLeft, X, ChevronLeft, ChevronRight, Landmark, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export const CulturalDetails: React.FC = () => {
   const { id } = useParams();
-  const { culturalProjects } = useProjects();
+  const { culturalProjects, isLoadingData } = useProjects();
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isLargeScreen, setIsLargeScreen] = useState(false);
@@ -38,10 +38,6 @@ export const CulturalDetails: React.FC = () => {
     }
   }, [project]);
 
-  if (!project) {
-    return <div className="min-h-screen flex items-center justify-center text-gray-500">Projeto Cultural não encontrado.</div>;
-  }
-
   const openLightbox = (index: number) => setLightboxIndex(index);
   const closeLightbox = () => setLightboxIndex(null);
 
@@ -58,6 +54,9 @@ export const CulturalDetails: React.FC = () => {
       setLightboxIndex((lightboxIndex - 1 + allImages.length) % allImages.length);
     }
   };
+
+  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
+  // This is a React rule - hooks must be called in the same order every render
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -104,6 +103,21 @@ export const CulturalDetails: React.FC = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // CONDITIONAL RETURNS - AFTER all hooks have been called
+  // Show loading while data is being fetched
+  if (isLoadingData || (culturalProjects.length === 0 && id)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+      </div>
+    );
+  }
+
+  // Only show not found AFTER data has loaded AND culturalProjects array is populated
+  if (!project) {
+    return <div className="min-h-screen flex items-center justify-center text-gray-500">Projeto Cultural não encontrado.</div>;
+  }
 
   return (
     <div className="bg-white">
@@ -165,12 +179,14 @@ export const CulturalDetails: React.FC = () => {
           transition={{ duration: 2, ease: "easeOut" }}
           src={project.image}
           className="w-full h-full object-cover"
+          loading="lazy"
+          decoding="async"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex flex-col justify-end pb-12 md:pb-20 px-6 md:px-12">
           <div className="container mx-auto relative z-10">
-            <Link to="/cultural" className="text-white/60 hover:text-white mb-6 flex items-center space-x-2 text-xs md:text-sm uppercase tracking-widest transition">
-              <ArrowLeft className="w-4 h-4" /> <span>Voltar para Cultura</span>
-            </Link>
+            <button onClick={() => window.history.back()} className="text-white/60 hover:text-white mb-6 flex items-center space-x-2 text-xs md:text-sm uppercase tracking-widest transition cursor-pointer">
+              <ArrowLeft className="w-4 h-4" /> <span>Voltar</span>
+            </button>
             <motion.span
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -309,6 +325,8 @@ export const CulturalDetails: React.FC = () => {
                           src={block.content}
                           className="w-full h-auto transition-transform duration-1000 ease-in-out hover:scale-105"
                           alt="Project detail"
+                          loading="lazy"
+                          decoding="async"
                         />
                       </div>
                       {block.caption && <p className="text-xs text-gray-400 mt-2 text-center">{block.caption}</p>}
@@ -330,6 +348,8 @@ export const CulturalDetails: React.FC = () => {
                             src={url}
                             className="w-full h-64 md:h-96 object-cover transition-transform duration-1000 ease-in-out hover:scale-110"
                             alt="Grid detail"
+                            loading="lazy"
+                            decoding="async"
                           />
                         </div>
                       ))}
@@ -360,6 +380,7 @@ export const CulturalDetails: React.FC = () => {
                       src={img}
                       className="w-full h-auto object-cover transition-transform duration-1000 ease-in-out group-hover:scale-105"
                       loading="lazy"
+                      decoding="async"
                     />
                   </motion.div>
                 ))}

@@ -1,12 +1,15 @@
 import React, { useState, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useProjects } from '../context/ProjectContext';
-import { Settings, Package, Heart, LogOut, FileText, Download, Clock, CheckCircle, Brain, Trash2, Edit2, Plus, MessageSquare, Folder, Image, Video, ArrowLeft, X, Save, Calendar, MapPin, ExternalLink, Ban, UserCircle, Upload, Home, Briefcase, Video as VideoIcon, AlertCircle, ChevronLeft, ChevronRight, RefreshCw, Lock, Receipt } from 'lucide-react';
+import { Settings, Package, Heart, LogOut, FileText, Download, Clock, CheckCircle, Brain, Trash2, Edit2, Plus, MessageSquare, Folder, Image, Video, ArrowLeft, X, Save, Calendar, MapPin, ExternalLink, Ban, UserCircle, Upload, Home, Briefcase, Video as VideoIcon, AlertCircle, ChevronLeft, ChevronRight, RefreshCw, Lock, Receipt, ShoppingBag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Project, ClientMemory, ClientFolder, Address, User, Appointment } from '../types';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { ClientBudgetsView } from './Client/ClientBudgetsView';
 import { ClientBudgetDetail } from './Client/ClientBudgetDetail';
+import { ClientOrdersView } from './Client/ClientOrdersView';
+import { ImageCropModal, useImageCropModal } from '../components/ImageCropModal';
 
 // Real Supabase Upload
 const uploadToSupabase = async (file: File): Promise<string> => {
@@ -30,8 +33,8 @@ const uploadToSupabase = async (file: File): Promise<string> => {
 };
 
 export const ClientArea: React.FC = () => {
-  const { currentUser, logout, projects: allProjects, clientMemories, addClientMemory, updateClientMemory, deleteClientMemory, appointments, updateAppointmentStatus, updateAppointment, updateUser, showToast, siteContent, checkAvailability } = useProjects();
-  const [activeTab, setActiveTab] = useState<'profile' | 'projects' | 'docs' | 'settings' | 'favs' | 'memories' | 'schedule' | 'budgets'>('projects');
+  const { currentUser, logout, projects: allProjects, clientMemories, addClientMemory, updateClientMemory, deleteClientMemory, appointments, updateAppointmentStatus, updateAppointment, updateUser, showToast, siteContent, checkAvailability, settings, addAddress, updateAddress, deleteAddress } = useProjects();
+  const [activeTab, setActiveTab] = useState<'profile' | 'projects' | 'docs' | 'settings' | 'favs' | 'memories' | 'schedule' | 'budgets' | 'orders'>('projects');
 
   const navigate = useNavigate();
 
@@ -57,6 +60,9 @@ export const ClientArea: React.FC = () => {
 
   // Budget Navigation State
   const [selectedBudgetId, setSelectedBudgetId] = useState<string | null>(null);
+
+  // Image Crop Modal State for Avatar
+  const avatarCropModal = useImageCropModal();
 
 
   if (!currentUser) {
@@ -89,11 +95,20 @@ export const ClientArea: React.FC = () => {
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0] || !currentUser) return;
+    // Open crop modal instead of direct upload
+    avatarCropModal.openCropModal(e.target.files[0]);
+    // Reset input to allow selecting same file again
+    e.target.value = '';
+  };
+
+  // Handle cropped avatar upload
+  const handleCroppedAvatarUpload = async (file: File) => {
+    if (!currentUser) return;
     setUploadingAvatar(true);
     try {
-      const url = await uploadToSupabase(e.target.files[0]);
+      const url = await uploadToSupabase(file);
       updateUser({ ...currentUser, avatar: url });
-      showToast('Foto de perfil atualizada.', 'success');
+      showToast('Foto de perfil atualizada e otimizada!', 'success');
     } catch (err) {
       showToast('Erro ao atualizar foto.', 'error');
     } finally {
@@ -102,27 +117,58 @@ export const ClientArea: React.FC = () => {
   };
 
   const handleAddAddress = () => {
-    setAddressForm({ label: 'Casa', country: 'Brasil' } as any);
+    setAddressForm({ label: 'Casa' });
     setShowAddressModal(true);
   };
 
-  const handleSaveAddress = () => {
+  const handleSaveAddress = async () => {
     if (!currentUser) return;
-    const newAddress = {
-      ...addressForm,
-      id: addressForm.id || Math.random().toString(36).substr(2, 9)
-    } as Address;
 
-    let updatedAddresses = [...(currentUser.addresses || [])];
-    if (addressForm.id) {
-      updatedAddresses = updatedAddresses.map(a => a.id === addressForm.id ? newAddress : a);
-    } else {
-      updatedAddresses.push(newAddress);
+    // Validate label isn't duplicate
+    const existingLabels = (currentUser.addresses || []).map(a => a.label.toLowerCase());
+    const newLabel = (addressForm.label || 'Casa').toLowerCase();
+
+    // If editing and same label, allow
+    if (!addressForm.id && existingLabels.includes(newLabel)) {
+      showToast(`Você já tem um endereço chamado "${addressForm.label}". Use outro nome.`, 'error');
+      return;
     }
 
-    updateUser({ ...currentUser, addresses: updatedAddresses });
+    if (addressForm.id) {
+      // Update existing address in database using updateAddress
+      const success = await updateAddress({
+        id: addressForm.id,
+        label: addressForm.label || 'Casa',
+        street: addressForm.street || '',
+        number: addressForm.number || '',
+        complement: addressForm.complement || '',
+        district: addressForm.district || '',
+        city: addressForm.city || '',
+        state: addressForm.state || '',
+        zipCode: addressForm.zipCode || ''
+      });
+      if (success) {
+        showToast('Endereço atualizado.', 'success');
+      }
+    } else {
+      // Add new address to database
+      const saved = await addAddress({
+        label: addressForm.label || 'Casa',
+        street: addressForm.street || '',
+        number: addressForm.number || '',
+        complement: addressForm.complement || '',
+        district: addressForm.district || '',
+        city: addressForm.city || '',
+        state: addressForm.state || '',
+        zipCode: addressForm.zipCode || ''
+      });
+
+      if (saved) {
+        showToast('Endereço adicionado.', 'success');
+      }
+    }
+
     setShowAddressModal(false);
-    showToast(addressForm.id ? 'Endereço atualizado.' : 'Endereço adicionado.', 'success');
   };
 
   const handleEditAddress = (addr: Address) => {
@@ -130,10 +176,12 @@ export const ClientArea: React.FC = () => {
     setShowAddressModal(true);
   };
 
-  const handleDeleteAddress = (id: string) => {
+  const handleDeleteAddress = async (id: string) => {
     if (!currentUser || !confirm('Excluir este endereço?')) return;
-    const updatedAddresses = (currentUser.addresses || []).filter(a => a.id !== id);
-    updateUser({ ...currentUser, addresses: updatedAddresses });
+    const success = await deleteAddress(id);
+    if (success) {
+      showToast('Endereço excluído.', 'success');
+    }
   };
 
   const handleAddMemory = () => {
@@ -236,6 +284,12 @@ export const ClientArea: React.FC = () => {
               <Receipt className="w-4 h-4" />
               <span className="whitespace-nowrap">Orçamentos</span>
             </button>
+            {settings.enableShop && (
+              <button onClick={() => setActiveTab('orders')} className={`flex-shrink-0 flex items-center space-x-2 px-4 py-2 rounded-full transition text-sm border ${activeTab === 'orders' ? 'bg-black text-white border-black font-bold' : 'text-gray-500 hover:border-black hover:text-black border-transparent'}`}>
+                <ShoppingBag className="w-4 h-4" />
+                <span className="whitespace-nowrap">Pedidos</span>
+              </button>
+            )}
             <button onClick={() => setActiveTab('profile')} className={`flex-shrink-0 flex items-center space-x-2 px-4 py-2 rounded-full transition text-sm border ${activeTab === 'profile' ? 'bg-black text-white border-black font-bold' : 'text-gray-500 hover:border-black hover:text-black border-transparent'}`}>
               <UserCircle className="w-4 h-4" />
               <span className="whitespace-nowrap">Perfil</span>
@@ -267,6 +321,20 @@ export const ClientArea: React.FC = () => {
               <div className="text-xs bg-black text-white px-3 py-1 rounded-full uppercase font-bold tracking-wider">Cliente VIP</div>
             </div>
           </div>
+
+          {/* Avatar Crop Modal */}
+          <ImageCropModal
+            image={avatarCropModal.imageSource}
+            originalFile={avatarCropModal.selectedFile || undefined}
+            isOpen={avatarCropModal.isOpen}
+            onClose={avatarCropModal.closeCropModal}
+            onCropComplete={handleCroppedAvatarUpload}
+            aspect={1}
+            cropShape="round"
+            preset="avatar"
+            requireCrop={true}
+            title="Ajustar Foto de Perfil"
+          />
 
           {/* Content Area */}
           <div className="w-full lg:w-3/4 bg-white rounded-xl shadow-sm p-6 md:p-8 min-h-[500px]">
@@ -556,6 +624,16 @@ export const ClientArea: React.FC = () => {
               </div>
             )}
 
+            {/* ORDERS TAB */}
+            {activeTab === 'orders' && settings.enableShop && (
+              <div className="animate-fadeIn">
+                <ClientOrdersView
+                  showToast={showToast}
+                  clientId={currentUser.id}
+                />
+              </div>
+            )}
+
             {/* PROFILE TAB */}
             {activeTab === 'profile' && (
               <div className="animate-fadeIn">
@@ -661,64 +739,180 @@ export const ClientArea: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Address Modal */}
-                <AnimatePresence>
-                  {showAddressModal && (
-                    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                      <motion.div
-                        initial={{ scale: 0.9, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0.9, opacity: 0 }}
-                        className="bg-white rounded-2xl w-full max-w-lg p-6 md:p-8"
-                      >
-                        <div className="flex justify-between items-center mb-6">
-                          <h3 className="text-xl font-serif font-bold">{addressForm.id ? 'Editar Endereço' : 'Novo Endereço'}</h3>
-                          <button onClick={() => setShowAddressModal(false)}><X className="w-5 h-5" /></button>
-                        </div>
-                        <div className="space-y-4">
-                          <div>
-                            <label className="text-xs font-bold uppercase text-gray-500">Rótulo (Ex: Casa, Escritório)</label>
-                            <input value={addressForm.label || ''} onChange={e => setAddressForm({ ...addressForm, label: e.target.value })} className="w-full border p-2 rounded mt-1" placeholder="Casa" />
-                          </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <label className="text-xs font-bold uppercase text-gray-500">CEP</label>
-                              <input value={addressForm.zipCode || ''} onChange={e => setAddressForm({ ...addressForm, zipCode: e.target.value })} className="w-full border p-2 rounded mt-1" />
+                {/* Address Modal - Using Portal to render outside stacking context */}
+                {createPortal(
+                  <AnimatePresence>
+                    {showAddressModal && (
+                      <>
+                        {/* Lock body scroll */}
+                        <style>{`body { overflow: hidden !important; }`}</style>
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+                          onClick={() => setShowAddressModal(false)}
+                        >
+                          {/* Backdrop with blur */}
+                          <div className="absolute inset-0 bg-black/60 backdrop-blur-md" />
+
+                          {/* Modal with glass effect */}
+                          <motion.div
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="relative bg-white/95 backdrop-blur-xl rounded-2xl w-full max-w-md p-5 shadow-2xl border border-white/20 max-h-[85vh] overflow-y-auto"
+                          >
+                            <div className="flex justify-between items-center mb-4">
+                              <h3 className="text-lg font-serif font-bold">{addressForm.id ? 'Editar Endereço' : 'Novo Endereço'}</h3>
+                              <button onClick={() => setShowAddressModal(false)} className="p-1.5 hover:bg-gray-100 rounded-full transition">
+                                <X className="w-5 h-5" />
+                              </button>
                             </div>
-                            <div>
-                              <label className="text-xs font-bold uppercase text-gray-500">Cidade/UF</label>
-                              <div className="flex gap-2">
-                                <input value={addressForm.city || ''} onChange={e => setAddressForm({ ...addressForm, city: e.target.value })} className="w-full border p-2 rounded mt-1" placeholder="Cidade" />
-                                <input value={addressForm.state || ''} onChange={e => setAddressForm({ ...addressForm, state: e.target.value })} className="w-20 border p-2 rounded mt-1" placeholder="UF" />
+                            <div className="space-y-4">
+                              {/* Label Selection with Icons */}
+                              <div>
+                                <label className="block text-xs font-bold uppercase text-gray-500 mb-3">Tipo de Endereço</label>
+                                <div className="grid grid-cols-3 gap-3">
+                                  <button
+                                    type="button"
+                                    onClick={() => setAddressForm({ ...addressForm, label: 'Casa' })}
+                                    className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition ${addressForm.label === 'Casa'
+                                      ? 'border-black bg-gray-50'
+                                      : 'border-gray-200 hover:border-gray-400'
+                                      }`}
+                                  >
+                                    <Home className="w-6 h-6" />
+                                    <span className="text-sm font-bold">Casa</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setAddressForm({ ...addressForm, label: 'Trabalho' })}
+                                    className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition ${addressForm.label === 'Trabalho'
+                                      ? 'border-black bg-gray-50'
+                                      : 'border-gray-200 hover:border-gray-400'
+                                      }`}
+                                  >
+                                    <Briefcase className="w-6 h-6" />
+                                    <span className="text-sm font-bold">Trabalho</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setAddressForm({ ...addressForm, label: 'Outro' })}
+                                    className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition ${(addressForm.label !== 'Casa' && addressForm.label !== 'Trabalho' && addressForm.label)
+                                      ? 'border-black bg-gray-50'
+                                      : 'border-gray-200 hover:border-gray-400'
+                                      }`}
+                                  >
+                                    <MapPin className="w-6 h-6" />
+                                    <span className="text-sm font-bold">Outro</span>
+                                  </button>
+                                </div>
                               </div>
+                              {/* Custom label input for "Outro" */}
+                              {addressForm.label !== 'Casa' && addressForm.label !== 'Trabalho' && addressForm.label && (
+                                <input
+                                  type="text"
+                                  value={addressForm.label === 'Outro' ? '' : addressForm.label}
+                                  onChange={e => setAddressForm({ ...addressForm, label: e.target.value || 'Outro' })}
+                                  placeholder="Nome personalizado (ex: Casa da Praia)"
+                                  className="w-full border border-gray-300 p-3 rounded-lg mt-3 focus:outline-none focus:ring-2 focus:ring-black/10"
+                                />
+                              )}
+
+
+                              {/* CEP and Street in one row */}
+                              <div className="grid grid-cols-[120px_1fr] gap-3">
+                                <div>
+                                  <label className="text-xs font-bold uppercase text-gray-500">CEP *</label>
+                                  <input
+                                    value={addressForm.zipCode || ''}
+                                    onChange={e => setAddressForm({ ...addressForm, zipCode: e.target.value })}
+                                    className="w-full border border-gray-300 p-2.5 rounded-lg mt-1 focus:outline-none focus:ring-2 focus:ring-black/10 text-sm"
+                                    placeholder="00000-000"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs font-bold uppercase text-gray-500">Rua *</label>
+                                  <input
+                                    value={addressForm.street || ''}
+                                    onChange={e => setAddressForm({ ...addressForm, street: e.target.value })}
+                                    className="w-full border border-gray-300 p-2.5 rounded-lg mt-1 focus:outline-none focus:ring-2 focus:ring-black/10 text-sm"
+                                    placeholder="Nome da rua"
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Number, District, Complement in one row */}
+                              <div className="grid grid-cols-3 gap-3">
+                                <div>
+                                  <label className="text-xs font-bold uppercase text-gray-500">Número *</label>
+                                  <input
+                                    value={addressForm.number || ''}
+                                    onChange={e => setAddressForm({ ...addressForm, number: e.target.value })}
+                                    className="w-full border border-gray-300 p-2.5 rounded-lg mt-1 focus:outline-none focus:ring-2 focus:ring-black/10 text-sm"
+                                    placeholder="123"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs font-bold uppercase text-gray-500">Bairro *</label>
+                                  <input
+                                    value={addressForm.district || ''}
+                                    onChange={e => setAddressForm({ ...addressForm, district: e.target.value })}
+                                    className="w-full border border-gray-300 p-2.5 rounded-lg mt-1 focus:outline-none focus:ring-2 focus:ring-black/10 text-sm"
+                                    placeholder="Bairro"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs font-bold uppercase text-gray-500">Compl.</label>
+                                  <input
+                                    value={addressForm.complement || ''}
+                                    onChange={e => setAddressForm({ ...addressForm, complement: e.target.value })}
+                                    className="w-full border border-gray-300 p-2.5 rounded-lg mt-1 focus:outline-none focus:ring-2 focus:ring-black/10 text-sm"
+                                    placeholder="Apto..."
+                                  />
+                                </div>
+                              </div>
+
+                              {/* City and State */}
+                              <div className="grid grid-cols-[1fr_70px] gap-3">
+                                <div>
+                                  <label className="text-xs font-bold uppercase text-gray-500">Cidade *</label>
+                                  <input
+                                    value={addressForm.city || ''}
+                                    onChange={e => setAddressForm({ ...addressForm, city: e.target.value })}
+                                    className="w-full border border-gray-300 p-2.5 rounded-lg mt-1 focus:outline-none focus:ring-2 focus:ring-black/10 text-sm"
+                                    placeholder="Cidade"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs font-bold uppercase text-gray-500">UF *</label>
+                                  <input
+                                    value={addressForm.state || ''}
+                                    onChange={e => setAddressForm({ ...addressForm, state: e.target.value })}
+                                    className="w-full border border-gray-300 p-2.5 rounded-lg mt-1 focus:outline-none focus:ring-2 focus:ring-black/10 text-sm"
+                                    placeholder="ES"
+                                    maxLength={2}
+                                  />
+                                </div>
+                              </div>
+
+                              <button
+                                onClick={handleSaveAddress}
+                                className="w-full bg-black text-white py-3 rounded-xl font-bold hover:bg-accent hover:text-black transition mt-2"
+                              >
+                                Salvar Endereço
+                              </button>
                             </div>
-                          </div>
-                          <div className="grid grid-cols-[1fr_100px] gap-4">
-                            <div>
-                              <label className="text-xs font-bold uppercase text-gray-500">Rua</label>
-                              <input value={addressForm.street || ''} onChange={e => setAddressForm({ ...addressForm, street: e.target.value })} className="w-full border p-2 rounded mt-1" />
-                            </div>
-                            <div>
-                              <label className="text-xs font-bold uppercase text-gray-500">Número</label>
-                              <input value={addressForm.number || ''} onChange={e => setAddressForm({ ...addressForm, number: e.target.value })} className="w-full border p-2 rounded mt-1" />
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <label className="text-xs font-bold uppercase text-gray-500">Bairro</label>
-                              <input value={addressForm.district || ''} onChange={e => setAddressForm({ ...addressForm, district: e.target.value })} className="w-full border p-2 rounded mt-1" />
-                            </div>
-                            <div>
-                              <label className="text-xs font-bold uppercase text-gray-500">Complemento</label>
-                              <input value={addressForm.complement || ''} onChange={e => setAddressForm({ ...addressForm, complement: e.target.value })} className="w-full border p-2 rounded mt-1" />
-                            </div>
-                          </div>
-                          <button onClick={handleSaveAddress} className="w-full bg-black text-white py-3 rounded-lg font-bold hover:bg-accent hover:text-black transition mt-4">Salvar Endereço</button>
-                        </div>
-                      </motion.div>
-                    </div>
-                  )}
-                </AnimatePresence>
+                          </motion.div>
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>,
+                  document.body
+                )}
               </div>
             )}
 
@@ -803,6 +997,21 @@ export const ClientArea: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Avatar Crop Modal - Mandatory 1:1 circular crop */}
+      <ImageCropModal
+        image={avatarCropModal.imageSource}
+        originalFile={avatarCropModal.selectedFile || undefined}
+        isOpen={avatarCropModal.isOpen}
+        onClose={avatarCropModal.closeCropModal}
+        onCropComplete={handleCroppedAvatarUpload}
+        aspect={1}
+        cropShape="round"
+        preset="avatar"
+        requireCrop={true}
+        showAspectSelector={false}
+        title="Ajustar Foto de Perfil"
+      />
     </div>
   );
 };

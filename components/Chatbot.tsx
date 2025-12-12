@@ -4,6 +4,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useProjects } from '../context/ProjectContext';
 import { ChatMessage, Project } from '../types';
 import { Link, useNavigate } from 'react-router-dom';
+import { loadBrevoConversations, openBrevoChat } from '../utils/brevoConversations';
+import ServiceRedirectWidget from './ServiceRedirectWidget';
+import { normalizeString } from '../utils/stringUtils';
+
 
 // --- Helper for Markdown ---
 const renderFormattedText = (text: string) => {
@@ -60,61 +64,524 @@ const renderFormattedText = (text: string) => {
 
 const ProjectCarousel = ({ data }: { data: any }) => {
   const { projects } = useProjects();
-  const category = data?.category;
-  const filtered = category
-    ? projects.filter(p => p.category.toLowerCase().includes(category.toLowerCase())).slice(0, 3)
-    : projects.slice(0, 3);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
 
-  if (filtered.length === 0) return <div className="text-xs text-gray-500 mt-2">Nenhum projeto encontrado.</div>;
+  const category = data?.category;
+  // Try to filter by category, but fallback to all projects if no matches
+  const categoryFiltered = category
+    ? projects.filter(p => normalizeString(p.category).includes(normalizeString(category)))
+    : [];
+  // Use filtered if found, otherwise show all projects
+  const filtered = (category && categoryFiltered.length > 0)
+    ? categoryFiltered.slice(0, 4)
+    : projects.slice(0, 4);
+  const showingFallback = category && categoryFiltered.length === 0 && projects.length > 0;
+
+  // Detect touch device on mount
+  useEffect(() => {
+    const checkTouch = () => {
+      setIsTouchDevice(
+        'ontouchstart' in window ||
+        navigator.maxTouchPoints > 0 ||
+        window.matchMedia('(pointer: coarse)').matches
+      );
+    };
+    checkTouch();
+  }, []);
+
+  // Update scroll button visibility
+  const updateScrollButtons = () => {
+    if (scrollRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 5);
+    }
+  };
+
+  useEffect(() => {
+    updateScrollButtons();
+  }, [filtered]);
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollRef.current) {
+      const scrollAmount = 220; // Slightly more than card width
+      scrollRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+      setTimeout(updateScrollButtons, 300);
+    }
+  };
+
+  if (filtered.length === 0) return (
+    <div className="mt-3 p-4 bg-gray-50 rounded-lg border border-gray-100 text-center">
+      <p className="text-sm text-gray-600">Carregando projetos...</p>
+      <p className="text-xs text-gray-400 mt-1">Se o problema persistir, tente recarregar a página.</p>
+    </div>
+  );
 
   return (
-    <div className="mt-4 flex gap-4 overflow-x-auto pb-2 no-scrollbar pl-1">
-      {filtered.map(p => (
-        <Link to={`/project/${p.id}`} key={p.id} className="min-w-[200px] bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden block hover:border-accent transition group">
-          <div className="relative">
-            <img src={p.image} className="w-full h-24 object-cover" />
-            <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition"></div>
-          </div>
-          <div className="p-3">
-            <h4 className="font-serif font-bold text-sm truncate">{p.title}</h4>
-            <p className="text-xs text-gray-500">{p.category}</p>
-          </div>
-        </Link>
-      ))}
+    <div className="mt-4 relative">
+      {showingFallback && (
+        <p className="text-xs text-gray-500 mb-2 italic">
+          Não temos projetos "{category}" no momento. Veja nossos outros projetos:
+        </p>
+      )}
+      {/* Left scroll button - Desktop only */}
+      {!isTouchDevice && canScrollLeft && (
+        <button
+          onClick={() => scroll('left')}
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-full shadow-md flex items-center justify-center hover:bg-black hover:text-white hover:border-black transition-all -ml-2"
+          aria-label="Rolar para esquerda"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+      )}
+
+      <div
+        ref={scrollRef}
+        onScroll={updateScrollButtons}
+        className="flex gap-4 overflow-x-auto pb-2 no-scrollbar pl-1 pr-1"
+      >
+        {filtered.map(p => (
+          <Link to={`/project/${p.id}`} key={p.id} className="min-w-[200px] bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden block hover:border-accent transition group">
+            <div className="relative">
+              <img src={p.image} className="w-full h-24 object-cover" />
+              <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition"></div>
+            </div>
+            <div className="p-3">
+              <h4 className="font-serif font-bold text-sm truncate">{p.title}</h4>
+              <p className="text-xs text-gray-500">{p.category}</p>
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      {/* Right scroll button - Desktop only */}
+      {!isTouchDevice && canScrollRight && (
+        <button
+          onClick={() => scroll('right')}
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-full shadow-md flex items-center justify-center hover:bg-black hover:text-white hover:border-black transition-all -mr-2"
+          aria-label="Rolar para direita"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      )}
     </div>
   );
 };
 
-const SocialLinks = () => (
-  <div className="mt-4 space-y-3">
-    <a
-      href="https://wa.me/5527996670426?text=Ol%C3%A1%2C%20vim%20pelo%20site%20e%20gostaria%20de%20saber%20mais."
-      target="_blank"
-      rel="noreferrer"
-      className="flex items-center justify-between bg-[#25D366] text-white p-3 rounded-lg hover:brightness-105 transition shadow-sm w-full"
-    >
-      <div className="flex items-center gap-3">
-        <Phone className="w-5 h-5 fill-current" />
-        <div className="text-left">
-          <span className="font-bold text-sm block">WhatsApp Direto</span>
-          <span className="text-[10px] opacity-90 block">Resposta rápida</span>
-        </div>
-      </div>
-      <ExternalLink className="w-4 h-4 opacity-50" />
-    </a>
-    <div className="flex gap-2">
-      <a
-        href="https://instagram.com/othebaldi"
-        target="_blank"
-        rel="noreferrer"
-        className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-tr from-yellow-500 via-red-500 to-purple-600 text-white p-3 rounded-lg hover:opacity-90 transition shadow-sm"
-      >
-        <Instagram className="w-5 h-5" />
-        <span className="text-xs font-bold">@othebaldi</span>
-      </a>
+// --- Cultural Projects Carousel ---
+const CulturalCarousel = ({ data }: { data: any }) => {
+  const { culturalProjects } = useProjects();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const category = data?.category;
+  const filtered = category
+    ? culturalProjects.filter(p => normalizeString(p.category || '').includes(normalizeString(category))).slice(0, 4)
+    : culturalProjects.slice(0, 4);
+
+  useEffect(() => {
+    const checkTouch = () => {
+      setIsTouchDevice(
+        'ontouchstart' in window ||
+        navigator.maxTouchPoints > 0 ||
+        window.matchMedia('(pointer: coarse)').matches
+      );
+    };
+    checkTouch();
+  }, []);
+
+  const updateScrollButtons = () => {
+    if (scrollRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 5);
+    }
+  };
+
+  useEffect(() => {
+    updateScrollButtons();
+  }, [filtered]);
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollRef.current) {
+      const scrollAmount = 200;
+      scrollRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+      setTimeout(updateScrollButtons, 300);
+    }
+  };
+
+  if (filtered.length === 0) return (
+    <div className="mt-3 p-4 bg-gray-50 rounded-lg border border-gray-100 text-center">
+      <p className="text-sm text-gray-600">Ainda não temos projetos culturais cadastrados.</p>
+      <p className="text-xs text-gray-400 mt-1">Mas fique à vontade para ver nosso portfólio de arquitetura!</p>
     </div>
-  </div>
-);
+  );
+
+  return (
+    <div className="mt-4 relative">
+      {!isTouchDevice && canScrollLeft && (
+        <button
+          onClick={() => scroll('left')}
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-full shadow-md flex items-center justify-center hover:bg-black hover:text-white hover:border-black transition-all -ml-2"
+          aria-label="Rolar para esquerda"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+      )}
+
+      <div
+        ref={scrollRef}
+        onScroll={updateScrollButtons}
+        className="flex gap-3 overflow-x-auto pb-2 no-scrollbar pl-1 pr-1"
+      >
+        {filtered.map(p => (
+          <Link to={`/cultural/${p.id}`} key={p.id} className="min-w-[180px] bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden block hover:border-black transition group">
+            <div className="relative">
+              <img src={p.image} className="w-full h-28 object-cover" loading="lazy" decoding="async" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition"></div>
+              <span className="absolute top-2 left-2 bg-black text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase">{p.category}</span>
+            </div>
+            <div className="p-3">
+              <h4 className="font-serif font-bold text-sm truncate">{p.title}</h4>
+              <p className="text-[10px] text-gray-400 flex items-center gap-1 mt-1">
+                <MapPin className="w-3 h-3" /> {p.location}
+              </p>
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      {!isTouchDevice && canScrollRight && (
+        <button
+          onClick={() => scroll('right')}
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-full shadow-md flex items-center justify-center hover:bg-black hover:text-white hover:border-black transition-all -mr-2"
+          aria-label="Rolar para direita"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      )}
+    </div>
+  );
+};
+
+// --- Product Carousel (Shop) ---
+const ProductCarousel = () => {
+  const { shopProducts, settings, fetchShopProducts } = useProjects();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch products when component mounts
+  useEffect(() => {
+    const loadProducts = async () => {
+      setIsLoading(true);
+      await fetchShopProducts();
+      setIsLoading(false);
+    };
+    loadProducts();
+  }, []);
+
+  // Filter only active products
+  const activeProducts = shopProducts.filter(p => p.status === 'active').slice(0, 5);
+
+  useEffect(() => {
+    const checkTouch = () => {
+      setIsTouchDevice(
+        'ontouchstart' in window ||
+        navigator.maxTouchPoints > 0 ||
+        window.matchMedia('(pointer: coarse)').matches
+      );
+    };
+    checkTouch();
+  }, []);
+
+  const updateScrollButtons = () => {
+    if (scrollRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 5);
+    }
+  };
+
+  useEffect(() => {
+    updateScrollButtons();
+  }, [activeProducts]);
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollRef.current) {
+      const scrollAmount = 170;
+      scrollRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+      setTimeout(updateScrollButtons, 300);
+    }
+  };
+
+  // Mensagens variadas para loja fechada
+  const closedShopMessages = [
+    "Nossa loja está fechada no momento, mas logo teremos novidades!",
+    "A loja não está disponível agora. Em breve teremos produtos incríveis!",
+    "Por ora a loja está em pausa, mas estamos preparando coisas boas!"
+  ];
+
+  // Mensagens variadas para sem produtos
+  const noProductsMessages = [
+    "No momento não temos produtos cadastrados, mas isso pode mudar em breve!",
+    "A loja ainda não tem produtos disponíveis. Fique ligado nas novidades!"
+  ];
+
+  // If shop is disabled - Show nice styled card
+  if (!settings.enableShop) {
+    const randomMsg = closedShopMessages[Math.floor(Math.random() * closedShopMessages.length)];
+    return (
+      <div className="mt-4 bg-gray-50 border border-gray-200 rounded-xl p-4 text-center animate-fadeIn">
+        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+          <Archive className="w-5 h-5 text-gray-400" />
+        </div>
+        <p className="text-sm text-gray-600 leading-relaxed mb-2">{randomMsg}</p>
+        <p className="text-xs text-gray-400">Posso ajudar com outras dúvidas ou você pode deixar uma mensagem.</p>
+      </div>
+    );
+  }
+
+  // Still loading
+  if (isLoading) {
+    return (
+      <div className="mt-4 flex items-center gap-2 text-xs text-gray-400">
+        <Loader2 className="w-4 h-4 animate-spin" />
+        Carregando produtos...
+      </div>
+    );
+  }
+
+  // No active products - Show nice styled card
+  if (activeProducts.length === 0) {
+    const randomMsg = noProductsMessages[Math.floor(Math.random() * noProductsMessages.length)];
+    return (
+      <div className="mt-4 bg-gray-50 border border-gray-200 rounded-xl p-4 text-center animate-fadeIn">
+        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+          <Archive className="w-5 h-5 text-gray-400" />
+        </div>
+        <p className="text-sm text-gray-600 leading-relaxed mb-2">{randomMsg}</p>
+        <p className="text-xs text-gray-400">Se precisar de algo mais, é só falar.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-4 relative">
+      {!isTouchDevice && canScrollLeft && (
+        <button
+          onClick={() => scroll('left')}
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-full shadow-md flex items-center justify-center hover:bg-black hover:text-white hover:border-black transition-all -ml-2"
+          aria-label="Rolar para esquerda"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+      )}
+
+      <div
+        ref={scrollRef}
+        onScroll={updateScrollButtons}
+        className="flex gap-3 overflow-x-auto pb-2 no-scrollbar pl-1 pr-1"
+      >
+        {activeProducts.map(product => (
+          <Link to={`/shop/product/${product.id}`} key={product.id} className="min-w-[150px] bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden block hover:border-black transition group">
+            <div className="relative">
+              <img
+                src={product.images[0] || '/placeholder.jpg'}
+                className="w-full h-28 object-cover"
+                loading="lazy"
+                decoding="async"
+              />
+              {product.stock <= 3 && product.stock > 0 && (
+                <span className="absolute top-2 right-2 bg-black text-white text-[8px] font-bold px-1.5 py-0.5 rounded">Últimas!</span>
+              )}
+              {product.stock === 0 && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">Esgotado</span>
+                </div>
+              )}
+            </div>
+            <div className="p-2.5">
+              <h4 className="font-medium text-sm truncate">{product.title}</h4>
+              <p className="text-black font-bold text-sm mt-1">
+                {product.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </p>
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      {!isTouchDevice && canScrollRight && (
+        <button
+          onClick={() => scroll('right')}
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-full shadow-md flex items-center justify-center hover:bg-black hover:text-white hover:border-black transition-all -mr-2"
+          aria-label="Rolar para direita"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      )}
+
+      <Link
+        to="/shop"
+        className="mt-3 w-full block text-center text-xs font-bold text-gray-600 hover:text-black transition py-2 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-black"
+      >
+        Ver Todos os Produtos →
+      </Link>
+    </div>
+  );
+};
+
+// --- Office Map Widget ---
+const OfficeMapWidget = () => {
+  const { siteContent } = useProjects();
+  const [isOpening, setIsOpening] = useState(false);
+
+  const office = siteContent.office;
+  const mapQuery = office.mapQuery || office.address || 'Fran Siller Arquitetura';
+  const mapsUrl = office.mapsLink || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
+
+  const handleOpenMaps = () => {
+    if (isOpening) return; // Prevent double-click
+    setIsOpening(true);
+    window.open(mapsUrl, '_blank');
+    setTimeout(() => setIsOpening(false), 2000);
+  };
+
+  return (
+    <div className="mt-4 bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+      {/* Map Embed */}
+      <div className="w-full h-40 bg-gray-100 relative">
+        <iframe
+          title="Localização do Escritório"
+          src={`https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed`}
+          className="w-full h-full border-0"
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+        />
+      </div>
+
+      {/* Office Info */}
+      <div className="p-4">
+        <h4 className="font-serif font-bold text-sm mb-2">📍 Nosso Escritório</h4>
+        <p className="text-xs text-gray-600 leading-relaxed mb-1">{office.address}</p>
+        <p className="text-[10px] text-gray-400 mb-3 flex items-center gap-1">
+          <Clock className="w-3 h-3" /> {office.hoursDescription}
+        </p>
+
+        <button
+          onClick={handleOpenMaps}
+          disabled={isOpening}
+          className={`w-full py-2.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 ${isOpening
+            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            : 'bg-black text-white hover:bg-accent hover:text-black'
+            }`}
+        >
+          <ExternalLink className="w-3.5 h-3.5" />
+          {isOpening ? 'Abrindo...' : 'Abrir no Google Maps'}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// Dynamic Social Links Component - reads from database
+const SocialLinks = () => {
+  const { siteContent } = useProjects();
+  const socialLinks = siteContent.office.socialLinks || [];
+
+  // Platform configurations with icons, colors, and URL formatters
+  const platformConfig: Record<string, { icon: any; color: string; gradient?: string; urlFormatter?: (url: string) => string; label: string }> = {
+    whatsapp: {
+      icon: Phone,
+      color: '#25D366',
+      urlFormatter: (url) => url.startsWith('http') ? url : `https://wa.me/${url.replace(/\D/g, '')}?text=Ol%C3%A1%2C%20vim%20pelo%20site%20e%20gostaria%20de%20saber%20mais.`,
+      label: 'WhatsApp'
+    },
+    instagram: {
+      icon: Instagram,
+      gradient: 'from-yellow-500 via-red-500 to-purple-600',
+      color: '',
+      urlFormatter: (url) => url.startsWith('http') ? url : `https://instagram.com/${url.replace('@', '')}`,
+      label: 'Instagram'
+    },
+    facebook: {
+      icon: Facebook,
+      color: '#1877F2',
+      urlFormatter: (url) => url.startsWith('http') ? url : `https://facebook.com/${url}`,
+      label: 'Facebook'
+    },
+    linkedin: {
+      icon: ExternalLink,
+      color: '#0A66C2',
+      urlFormatter: (url) => url.startsWith('http') ? url : `https://linkedin.com/in/${url}`,
+      label: 'LinkedIn'
+    },
+    telegram: {
+      icon: Send,
+      color: '#0088CC',
+      urlFormatter: (url) => url.startsWith('http') ? url : `https://t.me/${url}`,
+      label: 'Telegram'
+    },
+  };
+
+  // Fallback if no social links configured
+  if (socialLinks.length === 0) {
+    return (
+      <div className="mt-4 p-4 bg-gray-50 rounded-lg text-center">
+        <p className="text-sm text-gray-500">Nenhum canal de contato configurado.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-4 space-y-3">
+      {socialLinks.map((link) => {
+        const config = platformConfig[link.platform] || { icon: ExternalLink, color: '#666', label: link.platform, gradient: undefined, urlFormatter: undefined };
+        const Icon = config.icon;
+        const finalUrl = config.urlFormatter ? config.urlFormatter(link.url) : link.url;
+
+        return (
+          <a
+            key={link.id}
+            href={finalUrl}
+            target="_blank"
+            rel="noreferrer"
+            className={`flex items-center justify-between text-white p-3 rounded-lg hover:brightness-105 transition shadow-sm w-full ${config.gradient ? `bg-gradient-to-tr ${config.gradient}` : ''
+              }`}
+            style={!config.gradient ? { backgroundColor: config.color } : undefined}
+          >
+            <div className="flex items-center gap-3">
+              <Icon className="w-5 h-5" />
+              <div className="text-left">
+                <span className="font-bold text-sm block">{link.label || config.label}</span>
+                <span className="text-[10px] opacity-90 block">
+                  {link.platform === 'whatsapp' ? 'Resposta rápida' : 'Clique para acessar'}
+                </span>
+              </div>
+            </div>
+            <ExternalLink className="w-4 h-4 opacity-50" />
+          </a>
+        );
+      })}
+    </div>
+  );
+};
 
 // New Success Component
 const BookingSuccess = ({ data, closeChat }: { data: any, closeChat: () => void }) => {
@@ -333,6 +800,7 @@ interface ChatbotProps {
 export const Chatbot: React.FC<ChatbotProps> = ({ isOpen: externalIsOpen, onToggle, hideButton = false }) => {
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showQuickActions, setShowQuickActions] = useState(true); // NEW: Show quick action buttons
 
   const isControlled = externalIsOpen !== undefined && onToggle !== undefined;
   const isOpen = isControlled ? externalIsOpen : internalIsOpen;
@@ -342,7 +810,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ isOpen: externalIsOpen, onTogg
   const [isLoading, setIsLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const { sendMessageToAI, currentUser, addAdminNote, showToast, currentChatMessages, logAiFeedback, settings, addAppointment, siteContent, archiveCurrentChat, addClientMemory, restoreChatSession, updateMessageUI, clearCurrentChat } = useProjects();
+  const { sendMessageToAI, currentUser, addMessage, showToast, currentChatMessages, logAiFeedback, settings, addAppointment, siteContent, archiveCurrentChat, addClientMemory, restoreChatSession, updateMessageUI, clearCurrentChat, shopProducts } = useProjects();
 
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -389,6 +857,9 @@ export const Chatbot: React.FC<ChatbotProps> = ({ isOpen: externalIsOpen, onTogg
   // Safe display list avoiding crashes if array is undefined during transitions
   const displayMessages = (currentChatMessages && currentChatMessages.length > 0) ? currentChatMessages : defaultMessages;
 
+  // NOTE: Brevo script is loaded ON-DEMAND via openBrevoChat() when user requests human agent
+  // This prevents the floating button from appearing before it's needed
+
   useEffect(() => {
     if (isOpen && !showHistory && lastMessageRef.current) {
       setTimeout(() => {
@@ -409,7 +880,15 @@ export const Chatbot: React.FC<ChatbotProps> = ({ isOpen: externalIsOpen, onTogg
       if (response.actions && response.actions.length > 0) {
         for (const action of response.actions) {
           if (action.type === 'saveNote') {
-            addAdminNote(action.payload);
+            const isEmail = action.payload.userContact?.includes('@');
+            addMessage({
+              name: action.payload.userName,
+              email: isEmail ? action.payload.userContact : undefined,
+              phone: !isEmail ? action.payload.userContact : undefined,
+              message: action.payload.message,
+              source: 'chatbot',
+              status: 'new'
+            });
             showToast("Recado enviado para a equipe.", "success");
           }
           else if (action.type === 'navigate') {
@@ -423,9 +902,12 @@ export const Chatbot: React.FC<ChatbotProps> = ({ isOpen: externalIsOpen, onTogg
               showToast("Preferência registrada com sucesso!", "success");
             }
           }
+          else if (action.type === 'requestHuman') {
+            openBrevoChat();
+            showToast("Abrindo chat com especialista...", "info");
+          }
         }
       }
-
     } catch (err) {
       console.error(err);
     } finally {
@@ -437,6 +919,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ isOpen: externalIsOpen, onTogg
     e.preventDefault();
     const text = input;
     setInput('');
+    setShowQuickActions(false); // Hide quick actions when user sends a message
     processUserMessage(text);
   };
 
@@ -465,10 +948,12 @@ export const Chatbot: React.FC<ChatbotProps> = ({ isOpen: externalIsOpen, onTogg
     const result = await archiveCurrentChat();
 
     if (result === 'success') {
+      setShowQuickActions(true); // Restore quick actions
       showToast("Conversa arquivada com sucesso.", "success");
     } else if (result === 'guest') {
       // Logic Fix: Do not redirect guests. Just clear the chat.
       clearCurrentChat();
+      setShowQuickActions(true); // Restore quick actions
       showToast("Chat limpo. Faça login para salvar o histórico.", "info");
     } else {
       showToast("Erro ao arquivar.", "error");
@@ -572,6 +1057,10 @@ export const Chatbot: React.FC<ChatbotProps> = ({ isOpen: externalIsOpen, onTogg
                       {msg.uiComponent?.type === 'SocialLinks' && <SocialLinks />}
                       {msg.uiComponent?.type === 'CalendarWidget' && <CalendarWidget data={msg.uiComponent.data} messageId={msg.id} closeChat={() => setIsOpen(false)} />}
                       {msg.uiComponent?.type === 'BookingSuccess' && <BookingSuccess data={msg.uiComponent.data} closeChat={() => setIsOpen(false)} />}
+                      {msg.uiComponent?.type === 'ServiceRedirect' && <ServiceRedirectWidget data={msg.uiComponent.data} closeChat={() => setIsOpen(false)} />}
+                      {msg.uiComponent?.type === 'CulturalCarousel' && <CulturalCarousel data={msg.uiComponent.data} />}
+                      {msg.uiComponent?.type === 'ProductCarousel' && <ProductCarousel />}
+                      {msg.uiComponent?.type === 'OfficeMap' && <OfficeMapWidget />}
                     </div>
 
                     {msg.role === 'model' && (
@@ -584,6 +1073,31 @@ export const Chatbot: React.FC<ChatbotProps> = ({ isOpen: externalIsOpen, onTogg
                     )}
                   </div>
                 ))}
+                {/* Quick Action Buttons - Show only when config allows and no interaction yet */}
+                {showQuickActions && settings.chatbotConfig?.showQuickActionsOnOpen && displayMessages.length <= 1 && !isLoading && (
+                  <div className="mt-2 mb-4 animate-fadeIn">
+                    <p className="text-[10px] uppercase font-bold text-gray-400 mb-3 text-center">Sugestões Rápidas</p>
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      {settings.chatbotConfig.quickActions
+                        .filter(qa => qa.active)
+                        .filter(qa => !qa.label.includes('Atendente') || settings.chatbotConfig?.transferToHumanEnabled)
+                        .sort((a, b) => a.order - b.order)
+                        .map((action) => (
+                          <button
+                            key={action.id}
+                            onClick={() => {
+                              setShowQuickActions(false); // Hide buttons after click
+                              processUserMessage(action.message);
+                            }}
+                            className="px-4 py-2 bg-white border border-gray-200 rounded-full text-xs font-medium text-gray-700 hover:bg-black hover:text-white hover:border-black transition-all shadow-sm active:scale-95"
+                          >
+                            {action.label}
+                          </button>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
                 {isLoading && (
                   <div className="flex justify-start">
                     <div className="bg-white border border-gray-200 rounded-2xl rounded-bl-none p-4 flex items-center gap-2 shadow-sm">
