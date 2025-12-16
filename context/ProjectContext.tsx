@@ -113,17 +113,11 @@ const LS_CHAT_KEY = 'active_chat_session';
 const DEFAULT_SETTINGS: GlobalSettings = {
   enableShop: true,
   aiConfig: {
-    provider: 'gemini',
+    model: 'gemini-2.5-flash',
     useCustomSystemInstruction: false,
     systemInstruction: `VOCÊ É O "CONCIERGE DIGITAL" DA FRAN SILLER ARQUITETURA...`,
     defaultGreeting: "Olá {name}. Sou o Concierge Digital Fran Siller. Como posso tornar seu dia melhor?",
-    temperature: 0.7,
-    gemini: {
-      model: 'gemini-2.5-flash'
-    },
-    groq: {
-      model: 'llama-3.3-70b-versatile'
-    }
+    temperature: 0.7
   },
   chatbotConfig: {
     quickActions: [
@@ -138,7 +132,6 @@ const DEFAULT_SETTINGS: GlobalSettings = {
     showQuickActionsOnOpen: true
   }
 };
-
 
 const DEFAULT_SCHEDULE_SETTINGS: ScheduleSettings = {
   enabled: true,
@@ -356,28 +349,12 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
 
       if (savedBundle.global) {
         // Deep merge to preserve nested properties like chatbotConfig and aiConfig
-        const savedAiConfig = savedBundle.global.aiConfig || {};
         setSettings({
           ...DEFAULT_SETTINGS,
           ...savedBundle.global,
           aiConfig: {
             ...DEFAULT_SETTINGS.aiConfig,
-            ...savedAiConfig,
-            // Ensure provider defaults to 'gemini' if not set (retrocompatibility)
-            provider: savedAiConfig.provider || 'gemini',
-            // Deep merge gemini config
-            gemini: {
-              ...DEFAULT_SETTINGS.aiConfig.gemini,
-              ...(savedAiConfig.gemini || {}),
-              // Legacy fallback: if old 'model' field exists and starts with 'gemini', use it
-              model: savedAiConfig.gemini?.model ||
-                (savedAiConfig.model?.startsWith('gemini') ? savedAiConfig.model : DEFAULT_SETTINGS.aiConfig.gemini.model)
-            },
-            // Deep merge groq config
-            groq: {
-              ...DEFAULT_SETTINGS.aiConfig.groq,
-              ...(savedAiConfig.groq || {})
-            }
+            ...(savedBundle.global.aiConfig || {})
           },
           chatbotConfig: savedBundle.global.chatbotConfig || DEFAULT_SETTINGS.chatbotConfig
         });

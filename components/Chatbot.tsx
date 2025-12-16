@@ -70,15 +70,9 @@ const ProjectCarousel = ({ data }: { data: any }) => {
   const [canScrollRight, setCanScrollRight] = useState(true);
 
   const category = data?.category;
-  // Try to filter by category, but fallback to all projects if no matches
-  const categoryFiltered = category
-    ? projects.filter(p => normalizeString(p.category).includes(normalizeString(category)))
-    : [];
-  // Use filtered if found, otherwise show all projects
-  const filtered = (category && categoryFiltered.length > 0)
-    ? categoryFiltered.slice(0, 4)
-    : projects.slice(0, 4);
-  const showingFallback = category && categoryFiltered.length === 0 && projects.length > 0;
+  const filtered = category
+    ? projects.filter(p => normalizeString(p.category).includes(normalizeString(category))).slice(0, 3)
+    : projects.slice(0, 3);
 
   // Detect touch device on mount
   useEffect(() => {
@@ -116,20 +110,10 @@ const ProjectCarousel = ({ data }: { data: any }) => {
     }
   };
 
-  if (filtered.length === 0) return (
-    <div className="mt-3 p-4 bg-gray-50 rounded-lg border border-gray-100 text-center">
-      <p className="text-sm text-gray-600">Carregando projetos...</p>
-      <p className="text-xs text-gray-400 mt-1">Se o problema persistir, tente recarregar a página.</p>
-    </div>
-  );
+  if (filtered.length === 0) return <div className="text-xs text-gray-500 mt-2">Nenhum projeto encontrado.</div>;
 
   return (
     <div className="mt-4 relative">
-      {showingFallback && (
-        <p className="text-xs text-gray-500 mb-2 italic">
-          Não temos projetos "{category}" no momento. Veja nossos outros projetos:
-        </p>
-      )}
       {/* Left scroll button - Desktop only */}
       {!isTouchDevice && canScrollLeft && (
         <button
@@ -221,12 +205,7 @@ const CulturalCarousel = ({ data }: { data: any }) => {
     }
   };
 
-  if (filtered.length === 0) return (
-    <div className="mt-3 p-4 bg-gray-50 rounded-lg border border-gray-100 text-center">
-      <p className="text-sm text-gray-600">Ainda não temos projetos culturais cadastrados.</p>
-      <p className="text-xs text-gray-400 mt-1">Mas fique à vontade para ver nosso portfólio de arquitetura!</p>
-    </div>
-  );
+  if (filtered.length === 0) return <div className="text-xs text-gray-500 mt-2">Nenhum projeto cultural encontrado.</div>;
 
   return (
     <div className="mt-4 relative">
@@ -948,12 +927,10 @@ export const Chatbot: React.FC<ChatbotProps> = ({ isOpen: externalIsOpen, onTogg
     const result = await archiveCurrentChat();
 
     if (result === 'success') {
-      setShowQuickActions(true); // Restore quick actions
       showToast("Conversa arquivada com sucesso.", "success");
     } else if (result === 'guest') {
       // Logic Fix: Do not redirect guests. Just clear the chat.
       clearCurrentChat();
-      setShowQuickActions(true); // Restore quick actions
       showToast("Chat limpo. Faça login para salvar o histórico.", "info");
     } else {
       showToast("Erro ao arquivar.", "error");

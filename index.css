@@ -2,312 +2,41 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ========================================
-   2025 ULTRA MODERN - COSMOS DARK THEME
-   ======================================== */
-
-/* Import Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
-
-/* CSS Custom Properties */
-:root {
-  /* Cosmos Colors */
-  --cosmos-dark: #0a0e27;
-  --cosmos-mid: #1a1f3a;
-  --cosmos-light: #2d1b4e;
-  
-  /* Neon Accents */
-  --neon-lilac: #c9a9e9;
-  --neon-aqua: #64ffda;
-  --neon-gold: #ffd700;
-  
-  /* Text */
-  --text-light: #f8f9fa;
-  --text-muted: #b8c5d6;
-  
-  /* Glass */
-  --glass-bg: rgba(255, 255, 255, 0.1);
-  --glass-border: rgba(255, 255, 255, 0.2);
-  
-  /* Cursor */
-  --cursor-size: 40px;
-  --cursor-inner-size: 8px;
-}
-
-/* ========================================
-   BASE STYLES
-   ======================================== */
+/* Custom scrollbar for modern feel */
 @layer base {
+
   html,
   body {
     overflow-x: hidden;
   }
-  
-  /* Smooth scrolling */
-  html {
-    scroll-behavior: smooth;
-  }
-  
-  /* Selection styling */
-  ::selection {
-    background: var(--neon-lilac);
-    color: var(--cosmos-dark);
-  }
-  
-  /* Focus visible for accessibility */
-  :focus-visible {
-    outline: 2px solid var(--neon-aqua);
-    outline-offset: 2px;
-  }
-}
 
-/* ========================================
-   CUSTOM SCROLLBAR - DARK THEME
-   ======================================== */
-@layer base {
   ::-webkit-scrollbar {
     width: 8px;
   }
 
   ::-webkit-scrollbar-track {
-    background: var(--cosmos-dark);
+    background: #f1f1f1;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, var(--neon-lilac), var(--neon-aqua));
+    background: #d4bbb0;
     border-radius: 4px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--neon-aqua);
+    background: #bfa094;
   }
 }
 
-/* ========================================
-   CUSTOM CURSOR STYLES
-   ======================================== */
-.cursor-outer {
-  width: var(--cursor-size);
-  height: var(--cursor-size);
-  border: 2px solid var(--neon-lilac);
-  border-radius: 50%;
-  position: fixed;
-  pointer-events: none;
-  z-index: 9999;
-  transition: transform 0.15s ease-out, border-color 0.3s ease;
-  mix-blend-mode: difference;
-}
-
-.cursor-inner {
-  width: var(--cursor-inner-size);
-  height: var(--cursor-inner-size);
-  background: var(--neon-aqua);
-  border-radius: 50%;
-  position: fixed;
-  pointer-events: none;
-  z-index: 9999;
-  transition: transform 0.08s ease-out, width 0.2s ease, height 0.2s ease;
-}
-
-.cursor-outer.hover-link {
-  transform: scale(1.5);
-  border-color: var(--neon-aqua);
-}
-
-.cursor-inner.hover-link {
-  transform: scale(0.5);
-}
-
-/* Hide custom cursor on touch devices */
-@media (hover: none) and (pointer: coarse) {
-  .cursor-outer,
-  .cursor-inner {
-    display: none !important;
-  }
-}
-
-/* ========================================
-   GLASSMORPHISM UTILITIES
-   ======================================== */
-@layer components {
-  .glass {
-    background: var(--glass-bg);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--glass-border);
-  }
-  
-  .glass-card {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-  }
-  
-  .glass-card-hover {
-    transition: all 0.3s ease;
-  }
-  
-  .glass-card-hover:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.3);
-    transform: translateY(-10px);
-    box-shadow: 0 20px 60px 0 rgba(0, 0, 0, 0.4);
-  }
-}
-
-/* ========================================
-   GLOW EFFECTS
-   ======================================== */
-@layer utilities {
-  .glow-lilac {
-    box-shadow: 0 0 30px rgba(201, 169, 233, 0.4);
-  }
-  
-  .glow-aqua {
-    box-shadow: 0 0 30px rgba(100, 255, 218, 0.4);
-  }
-  
-  .glow-gold {
-    box-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
-  }
-  
-  .text-glow-lilac {
-    text-shadow: 0 0 30px rgba(201, 169, 233, 0.6);
-  }
-  
-  .text-glow-aqua {
-    text-shadow: 0 0 30px rgba(100, 255, 218, 0.6);
-  }
-  
-  .text-glow-gold {
-    text-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
-  }
-}
-
-/* ========================================
-   GRADIENT TEXT
-   ======================================== */
-@layer utilities {
-  .gradient-text {
-    background: linear-gradient(90deg, var(--neon-lilac) 0%, var(--neon-aqua) 50%, var(--neon-gold) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  
-  .gradient-text-animated {
-    background: linear-gradient(90deg, var(--neon-lilac), var(--neon-aqua), var(--neon-gold), var(--neon-lilac));
-    background-size: 300% 100%;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: gradientShift 8s ease infinite;
-  }
-}
-
-/* ========================================
-   ANIMATED UNDERLINE
-   ======================================== */
-@layer components {
-  .animated-underline {
-    position: relative;
-    text-decoration: none;
-  }
-  
-  .animated-underline::after {
-    content: '';
-    position: absolute;
-    bottom: -2px;
-    left: 0;
-    width: 0;
-    height: 2px;
-    background: linear-gradient(90deg, var(--neon-lilac), var(--neon-aqua));
-    transition: width 0.3s ease;
-  }
-  
-  .animated-underline:hover::after {
-    width: 100%;
-  }
-}
-
-/* ========================================
-   BUTTON EFFECTS
-   ======================================== */
-@layer components {
-  .btn-glow {
-    position: relative;
-    overflow: hidden;
-    transition: all 0.3s ease;
-  }
-  
-  .btn-glow::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, var(--neon-lilac), var(--neon-aqua));
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    z-index: -1;
-  }
-  
-  .btn-glow:hover::before {
-    opacity: 0.3;
-  }
-  
-  .btn-glow:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 40px rgba(201, 169, 233, 0.4);
-  }
-  
-  .btn-ripple {
-    position: relative;
-    overflow: hidden;
-  }
-  
-  .btn-ripple::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 0;
-    height: 0;
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-    transition: width 0.4s ease, height 0.4s ease;
-  }
-  
-  .btn-ripple:active::after {
-    width: 300px;
-    height: 300px;
-    opacity: 0;
-  }
-}
-
-/* ========================================
-   SHIMMER EFFECT
-   ======================================== */
-@layer utilities {
-  .shimmer {
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0.1) 50%,
-      transparent 100%
-    );
-    background-size: 200% 100%;
-    animation: shimmer 2s linear infinite;
-  }
-}
-
-/* ========================================
-   KEYFRAME ANIMATIONS
-   ======================================== */
+/* Custom Animations missing from Tailwind Default Config */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .animate-fadeIn {
@@ -317,8 +46,9 @@
 @keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateY(30px);
+    transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -326,7 +56,7 @@
 }
 
 .animate-slideUp {
-  animation: slideUp 0.6s ease-out forwards;
+  animation: slideUp 0.5s ease-out forwards;
 }
 
 @keyframes slideDown {
@@ -334,6 +64,7 @@
     opacity: 0;
     transform: translateY(-20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -344,43 +75,7 @@
   animation: slideDown 0.3s ease-out forwards;
 }
 
-@keyframes gradientShift {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-20px); }
-}
-
-@keyframes pulseGlow {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
-}
-
-/* ========================================
-   REDUCED MOTION
-   ======================================== */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-  
-  .cursor-outer,
-  .cursor-inner {
-    display: none !important;
-  }
-}
-
-/* ========================================
-   SCROLLBAR UTILITIES
-   ======================================== */
+/* Utility to hide scrollbar */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -403,32 +98,30 @@
 @media (min-width: 1024px) {
   .obras-scroll {
     scrollbar-width: thin;
-    scrollbar-color: var(--neon-lilac) var(--cosmos-dark);
+    scrollbar-color: #d4bbb0 #f1f1f1;
   }
 
   .obras-scroll::-webkit-scrollbar {
     display: block;
-    height: 6px;
+    height: 8px;
   }
 
   .obras-scroll::-webkit-scrollbar-track {
-    background: var(--cosmos-dark);
+    background: #f1f1f1;
     border-radius: 4px;
   }
 
   .obras-scroll::-webkit-scrollbar-thumb {
-    background: linear-gradient(90deg, var(--neon-lilac), var(--neon-aqua));
+    background: #d4bbb0;
     border-radius: 4px;
   }
 
   .obras-scroll::-webkit-scrollbar-thumb:hover {
-    background: var(--neon-aqua);
+    background: #bfa094;
   }
 }
 
-/* ========================================
-   BREVO WIDGET CONTROL
-   ======================================== */
+/* Brevo Widget Control - Hidden by default */
 #brevo-root {
   display: none !important;
   opacity: 0 !important;
@@ -445,43 +138,15 @@ body.brevo-visible #brevo-root {
   position: fixed !important;
 }
 
+/* Mobile: Ensure Brevo appears above our chatbot */
 @media (max-width: 768px) {
   body.brevo-visible #brevo-root,
   body.brevo-visible #brevo-root * {
     z-index: 99999 !important;
   }
-
+  
+  /* Hide our chatbot when Brevo is visible on mobile */
   body.brevo-visible .chatbot-scroll-view {
     z-index: 1 !important;
-  }
-}
-
-/* ========================================
-   GRID PATTERN BACKGROUND
-   ======================================== */
-.grid-pattern {
-  background-image: 
-    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 50px 50px;
-}
-
-/* ========================================
-   NEON BORDER
-   ======================================== */
-@layer utilities {
-  .neon-border-lilac {
-    border: 2px solid var(--neon-lilac);
-    box-shadow: 0 0 10px var(--neon-lilac), inset 0 0 10px rgba(201, 169, 233, 0.1);
-  }
-  
-  .neon-border-aqua {
-    border: 2px solid var(--neon-aqua);
-    box-shadow: 0 0 10px var(--neon-aqua), inset 0 0 10px rgba(100, 255, 218, 0.1);
-  }
-  
-  .neon-border-gold {
-    border: 2px solid var(--neon-gold);
-    box-shadow: 0 0 10px var(--neon-gold), inset 0 0 10px rgba(255, 215, 0, 0.1);
   }
 }

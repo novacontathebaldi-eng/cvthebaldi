@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useProjects } from '../../context/ProjectContext';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Edit2, Trash2, LayoutDashboard, FolderOpen, Users, Settings, LogOut, FileText, Save, Brain, ShoppingBag, Menu, X, ChevronRight, MessageSquare, Check, Clock, Upload, ImageIcon, Folder, Download, ArrowLeft, Bot, ThumbsDown, Calendar, MapPin, Ban, Map, GripVertical, ArrowUp, ArrowDown, Type, Quote, LayoutGrid, Heading, Info, RefreshCw, Archive, Link as LinkIcon, ThumbsUp, ToggleLeft, ToggleRight, Search, Landmark, Loader2, History, Mail, Star } from 'lucide-react';
+import { Plus, Edit2, Trash2, LayoutDashboard, FolderOpen, Users, Settings, LogOut, FileText, Save, Brain, ShoppingBag, Menu, X, ChevronRight, MessageSquare, Check, Clock, Upload, ImageIcon, Folder, Download, ArrowLeft, Bot, ThumbsDown, Calendar, MapPin, Ban, Map, GripVertical, ArrowUp, ArrowDown, Type, Quote, LayoutGrid, Heading, Info, RefreshCw, Archive, Link as LinkIcon, ThumbsUp, ToggleLeft, ToggleRight, Search, Landmark, Loader2, History, Mail } from 'lucide-react';
 import { SiteContent, GlobalSettings, StatItem, PillarItem, User, ClientFolder, Appointment, OfficeDetails, ContentBlock, ClientMemory, FaqItem, SocialLink, DashboardWidget, DashboardTabId } from '../../types';
 import { motion, Reorder, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../supabaseClient';
@@ -34,7 +34,7 @@ const uploadToSupabase = async (file: File): Promise<string> => {
 };
 
 export const AdminDashboard: React.FC = () => {
-    const { projects, deleteProject, updateProject, culturalProjects, deleteCulturalProject, updateCulturalProject, logout, siteContent, updateSiteContent, showToast, settings, updateSettings, persistAllSettings, messages, users, createClientFolder, renameClientFolder, deleteClientFolder, uploadFileToFolder, deleteClientFile, updateUser, aiFeedbacks, appointments, scheduleSettings, updateScheduleSettings, updateAppointmentStatus, updateAppointment, deleteAppointmentPermanently, currentUser, isLoadingData } = useProjects();
+    const { projects, deleteProject, culturalProjects, deleteCulturalProject, logout, siteContent, updateSiteContent, showToast, settings, updateSettings, persistAllSettings, messages, users, createClientFolder, renameClientFolder, deleteClientFolder, uploadFileToFolder, deleteClientFile, updateUser, aiFeedbacks, appointments, scheduleSettings, updateScheduleSettings, updateAppointmentStatus, updateAppointment, deleteAppointmentPermanently, currentUser, isLoadingData } = useProjects();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
 
@@ -1508,75 +1508,21 @@ export const AdminDashboard: React.FC = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 space-y-6">
                                     <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-black border-b pb-2"><Bot className="w-5 h-5" /> Configuração do Modelo</h3>
-
-                                    {/* Provider Selector */}
                                     <div>
-                                        <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Provedor de IA</label>
-                                        <div className="flex gap-2">
-                                            <button
-                                                onClick={() => {
-                                                    handleSettingsChange('aiConfig.provider', 'gemini');
-                                                }}
-                                                className={`flex-1 p-4 rounded-xl border-2 transition-all ${settingsForm.aiConfig.provider === 'gemini'
-                                                    ? 'border-black bg-black text-white'
-                                                    : 'border-gray-200 hover:border-gray-400'
-                                                    }`}
-                                            >
-                                                <div className="font-bold">Google Gemini</div>
-                                                <div className="text-xs opacity-70">Nativo Google AI</div>
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    handleSettingsChange('aiConfig.provider', 'groq');
-                                                }}
-                                                className={`flex-1 p-4 rounded-xl border-2 transition-all ${settingsForm.aiConfig.provider === 'groq'
-                                                    ? 'border-black bg-black text-white'
-                                                    : 'border-gray-200 hover:border-gray-400'
-                                                    }`}
-                                            >
-                                                <div className="font-bold">Groq AI</div>
-                                                <div className="text-xs opacity-70">Ultra Rápido, 100% Free</div>
-                                            </button>
-                                        </div>
+                                        <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Modelo LLM</label>
+                                        <select
+                                            value={settingsForm.aiConfig.model}
+                                            onChange={(e) => handleSettingsChange('aiConfig.model', e.target.value)}
+                                            className="w-full border p-3 rounded bg-white text-black focus:outline-none focus:border-black"
+                                        >
+                                            <option value="gemini-2.5-flash">Gemini 2.5 Flash (Rápido e Inteligente)</option>
+                                            <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite (Econômico, Ultra Rápido)</option>
+                                            <option value="gemini-3-pro-preview">Gemini 3 Pro Preview (Mais Inteligente)</option>
+                                            <option value="gemini-2.5-pro">Gemini 2.5 Pro (Raciocínio Avançado)</option>
+                                            <option value="gemini-2.0-flash">Gemini 2.0 Flash (Antigo)</option>
+                                            <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite (Econômico Antigo)</option>
+                                        </select>
                                     </div>
-
-                                    {/* Gemini Model Selector - Only show if provider is gemini */}
-                                    {settingsForm.aiConfig.provider === 'gemini' && (
-                                        <div>
-                                            <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Modelo Gemini</label>
-                                            <select
-                                                value={settingsForm.aiConfig.gemini?.model || 'gemini-2.5-flash'}
-                                                onChange={(e) => handleSettingsChange('aiConfig.gemini', { ...settingsForm.aiConfig.gemini, model: e.target.value })}
-                                                className="w-full border p-3 rounded bg-white text-black focus:outline-none focus:border-black"
-                                            >
-                                                <option value="gemini-2.5-flash">Gemini 2.5 Flash (Recomendado)</option>
-                                                <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite (Econômico)</option>
-                                                <option value="gemini-3-pro-preview">Gemini 3 Pro Preview (Mais Inteligente)</option>
-                                                <option value="gemini-2.5-pro">Gemini 2.5 Pro (Raciocínio)</option>
-                                                <option value="gemini-2.0-flash">Gemini 2.0 Flash (Antigo)</option>
-                                                <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite (Econômico Antigo)</option>
-                                            </select>
-                                        </div>
-                                    )}
-
-                                    {/* Groq Model Selector - Only show if provider is groq */}
-                                    {settingsForm.aiConfig.provider === 'groq' && (
-                                        <div>
-                                            <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Modelo Groq</label>
-                                            <select
-                                                value={settingsForm.aiConfig.groq?.model || 'llama-3.3-70b-versatile'}
-                                                onChange={(e) => handleSettingsChange('aiConfig.groq', { ...settingsForm.aiConfig.groq, model: e.target.value })}
-                                                className="w-full border p-3 rounded bg-white text-black focus:outline-none focus:border-black"
-                                            >
-                                                <option value="llama-3.3-70b-versatile">Llama 3.3 70B (Recomendado)</option>
-                                                <option value="llama-3.1-8b-instant">Llama 3.1 8B (Melhor Rate Limit)</option>
-                                                <option value="qwen/qwen3-32b">Qwen3 32B (Alternativo)</option>
-                                            </select>
-                                            <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
-                                                <Check className="w-3 h-3" /> 100% Gratuito • 14.400 req/dia
-                                            </p>
-                                        </div>
-                                    )}
                                     <div>
                                         <div className="flex justify-between items-center mb-2">
                                             <label className="block text-xs font-bold uppercase text-gray-500">Temperatura ({settingsForm.aiConfig.temperature || 0.7})</label>
@@ -1827,7 +1773,6 @@ export const AdminDashboard: React.FC = () => {
                                             <th className="text-left p-6 text-xs font-bold uppercase text-gray-600">Projeto</th>
                                             <th className="text-left p-6 text-xs font-bold uppercase text-gray-600 hidden md:table-cell">Categoria</th>
                                             <th className="text-left p-6 text-xs font-bold uppercase text-gray-600 hidden md:table-cell">Local</th>
-                                            <th className="text-center p-6 text-xs font-bold uppercase text-gray-600 hidden sm:table-cell" title="Exibir na Home">Home</th>
                                             <th className="text-right p-6 text-xs font-bold uppercase text-gray-600">Ações</th>
                                         </tr>
                                     </thead>
@@ -1842,18 +1787,6 @@ export const AdminDashboard: React.FC = () => {
                                                 </td>
                                                 <td className="p-6 text-sm text-gray-600 hidden md:table-cell">{project.category}</td>
                                                 <td className="p-6 text-sm text-gray-600 hidden md:table-cell">{project.location}</td>
-                                                <td className="p-6 text-center hidden sm:table-cell">
-                                                    <button
-                                                        onClick={() => {
-                                                            updateProject({ ...project, featured: !project.featured });
-                                                            showToast(project.featured ? 'Removido da Home' : 'Adicionado à Home', 'success');
-                                                        }}
-                                                        className={`p-2 rounded-lg transition ${project.featured ? 'text-yellow-500 bg-yellow-50 hover:bg-yellow-100' : 'text-gray-300 hover:text-yellow-400 hover:bg-gray-100'}`}
-                                                        title={project.featured ? 'Remover da Home' : 'Exibir na Home'}
-                                                    >
-                                                        <Star className={`w-5 h-5 ${project.featured ? 'fill-yellow-400' : ''}`} />
-                                                    </button>
-                                                </td>
                                                 <td className="p-6 text-right">
                                                     <div className="flex justify-end space-x-2">
                                                         <Link to={`/admin/project/edit/${project.id}`} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition"><Edit2 className="w-4 h-4" /></Link>
@@ -1884,14 +1817,13 @@ export const AdminDashboard: React.FC = () => {
                                             <th className="text-left p-6 text-xs font-bold uppercase text-gray-600">Projeto</th>
                                             <th className="text-left p-6 text-xs font-bold uppercase text-gray-600 hidden md:table-cell">Categoria</th>
                                             <th className="text-left p-6 text-xs font-bold uppercase text-gray-600 hidden md:table-cell">Parceiros</th>
-                                            <th className="text-center p-6 text-xs font-bold uppercase text-gray-600 hidden sm:table-cell" title="Exibir na Home">Home</th>
                                             <th className="text-right p-6 text-xs font-bold uppercase text-gray-600">Ações</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100">
                                         {culturalProjects.length === 0 ? (
                                             <tr>
-                                                <td colSpan={5} className="p-8 text-center text-gray-400">Nenhum projeto cultural cadastrado.</td>
+                                                <td colSpan={4} className="p-8 text-center text-gray-400">Nenhum projeto cultural cadastrado.</td>
                                             </tr>
                                         ) : (
                                             culturalProjects.map(project => (
@@ -1904,18 +1836,6 @@ export const AdminDashboard: React.FC = () => {
                                                     </td>
                                                     <td className="p-6 text-sm text-gray-600 hidden md:table-cell">{project.category}</td>
                                                     <td className="p-6 text-sm text-gray-600 hidden md:table-cell">{project.partners || '-'}</td>
-                                                    <td className="p-6 text-center hidden sm:table-cell">
-                                                        <button
-                                                            onClick={() => {
-                                                                updateCulturalProject({ ...project, featured: !project.featured });
-                                                                showToast(project.featured ? 'Removido da Home' : 'Adicionado à Home', 'success');
-                                                            }}
-                                                            className={`p-2 rounded-lg transition ${project.featured ? 'text-yellow-500 bg-yellow-50 hover:bg-yellow-100' : 'text-gray-300 hover:text-yellow-400 hover:bg-gray-100'}`}
-                                                            title={project.featured ? 'Remover da Home' : 'Exibir na Home'}
-                                                        >
-                                                            <Star className={`w-5 h-5 ${project.featured ? 'fill-yellow-400' : ''}`} />
-                                                        </button>
-                                                    </td>
                                                     <td className="p-6 text-right">
                                                         <div className="flex justify-end space-x-2">
                                                             <Link to={`/admin/cultural/edit/${project.id}`} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition"><Edit2 className="w-4 h-4" /></Link>
