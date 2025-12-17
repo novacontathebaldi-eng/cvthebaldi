@@ -1,22 +1,153 @@
-import { supabase } from '../supabaseClient';
+import { GoogleGenAI, Type } from "@google/genai";
 import { User, ClientMemory, ChatMessage, OfficeDetails, Project, CulturalProject } from '../types';
 import { notifyNewChatbotNote } from '../utils/emailService';
 
-// Define tool-related interfaces for type safety
-interface ToolCall {
-  name: string;
-  args: any;
-}
+// Define tools for GenUI & Actions
+const tools = [
+  {
+    functionDeclarations: [
+      {
+        name: 'showProjects',
+        description: 'Display a carousel of architectural projects based on specific criteria like Residential, Commercial, or Interiors.',
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            category: { type: Type.STRING, description: 'The project category: Residencial, Comercial, or Interiores' },
+          },
+        }
+      },
+      {
+        name: 'saveClientNote',
+        description: 'CRITICAL: Use this tool ONLY AFTER you have ALL information including the actual message content. You MUST ask "Qual mensagem gostaria de deixar?" or "Sobre o que gostaria de falar?" if the user has not provided the message details. NEVER call this tool without knowing what the user wants to communicate.',
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            name: { type: Type.STRING, description: 'The client name. Ask if not provided.' },
+            contact: { type: Type.STRING, description: 'The client phone or email. Ask if not provided.' },
+            message: { type: Type.STRING, description: 'The actual message content or subject the client wants to communicate. REQUIRED - you must ask for this if not provided.' }
+          },
+          required: ['name', 'contact', 'message']
+        }
+      },
+      {
+        name: 'autoNoteInterest',
+        description: 'Use automatically when commercial interest is detected (budget, construction, renovation, quote).',
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            interest: { type: Type.STRING, description: 'The specific interest (e.g., "Wants a renovation quote").' },
+            context: { type: Type.STRING, description: 'Context of the conversation.' }
+          },
+          required: ['interest', 'context']
+        }
+      },
+      {
+        name: 'learnClientPreference',
+        description: 'Use this tool AUTOMATICALLY when the user mentions a significant personal preference, fact, or style choice (e.g., "gosto de design minimalista", "prefiro cores neutras", "tenho 2 filhos"). CRITICAL: You MUST provide an engaging, personalized response acknowledging their preference. Examples: "Que interessante! Design minimalista transmite elegância e funcionalidade", "Ótima escolha! Vou registrar essa preferência para melhor te atender", "Entendo perfeitamente! Cores neutras trazem sofisticação atemporal". NEVER leave the response empty or generic.',
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            topic: { type: Type.STRING, description: 'Short topic title (e.g., "Estilo", "Cores", "Família", "Orçamento").' },
+            content: { type: Type.STRING, description: 'The detail to be remembered (e.g., "Gosta de design minimalista", "Prefere cores neutras", "Tem 2 filhos").' }
+          },
+          required: ['topic', 'content']
+        }
+      },
+      {
+        name: 'getSocialLinks',
+        description: 'Use this tool when the user asks for WhatsApp, Instagram, Facebook, or asks "How to contact you directly?".',
+        parameters: {
+          type: Type.OBJECT,
+          properties: {},
+        }
+      },
+      {
+        name: 'navigateSite',
+        description: 'Navigate the user to a specific page on the website (e.g., Portfolio, Contact, About, Services).',
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            path: {
+              type: Type.STRING,
+              description: 'The route path. Options: "/portfolio", "/contact", "/about", "/services", "/profile", "/cultural", "/office"'
+            }
+          },
+          required: ['path']
+        }
+      },
+      {
+        name: 'scheduleMeeting',
+        description: 'Use this tool ONLY AFTER collecting necessary details. Renders a calendar widget for the user to pick a date/time. Do NOT ask for date/time in text, use this tool.',
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            type: {
+              type: Type.STRING,
+              description: 'The type of appointment. "meeting" (for Online/Virtual or Office meetings) or "visit" (Client construction site).'
+            },
+            modality: {
+              type: Type.STRING,
+              description: 'REQUIRED for "meeting". Set to "online" or "in_person".'
+            },
+            address: {
+              type: Type.STRING,
+              description: 'REQUIRED for "visit". The address of the construction site.'
+            },
+            notes: {
+              type: Type.STRING,
+              description: 'Optional notes about the meeting purpose.'
+            }
+          },
+          required: ['type']
+        }
+      }
+    ]
+  }
+];
 
-interface ChatResponse {
-  role: 'model';
-  text: string;
-  uiComponent?: {
-    type: string;
-    data: any;
-  };
-  actions?: any[];
-}
+const DEFAULT_SYSTEM_INSTRUCTION = `
+VOCÊ É O "CONCIERGE DIGITAL" DA FRAN SILLER ARQUITETURA.
+
+SUA IDENTIDADE:
+- Sofisticado, minimalista, atencioso e altamente eficiente.
+
+PROTOCOLO RÍGIDO DE AGENDAMENTO (OBRIGATÓRIO):
+
+1. OBJETIVO:
+   - Nunca mostre o calendário (tool 'scheduleMeeting') sem antes ter as informações necessárias.
+   - O usuário escolhe a data e hora CLICANDO no calendário, não falando.
+
+2. FLUXO PARA "VISITA TÉCNICA" (Ir até a obra do cliente):
+   - Passo 1: O usuário pede visita.
+   - Passo 2: VOCÊ VERIFICA: Eu tenho o endereço da obra?
+     * SE NÃO: Pergunte "Qual é o endereço completo da obra/terreno?" (NÃO chame a tool ainda).
+     * SE SIM: Chame a tool 'scheduleMeeting' com type='visit' e address='Endereço fornecido'.
+
+3. FLUXO PARA "REUNIÃO" (Conversa de alinhamento/projeto):
+   - Passo 1: O usuário pede reunião.
+   - Passo 2: VOCÊ VERIFICA: Eu sei se é Online ou Presencial?
+     * SE NÃO: Pergunte "Prefere que a reunião seja online (videoconferência) ou presencial no nosso escritório?" e AGUARDE a resposta do usuário.
+     * SE SIM ou APÓS RECEBER A RESPOSTA: IMEDIATAMENTE chame a tool 'scheduleMeeting' com type='meeting' e modality='online' ou 'in_person'. NÃO responda com texto genérico como "Entendido". SEMPRE mostre o calendário após saber a modalidade.
+
+4. APÓS CHAMAR A TOOL 'scheduleMeeting':
+   - Responda algo como: "Aqui está a nossa agenda. Por favor, selecione o melhor horário abaixo."
+   - NÃO pergunte "qual data fica bom?". O widget fará isso.
+
+NAVEGAÇÃO DO SITE:
+Quando mencionar seções, SEMPRE ofereça link markdown no formato [Nome da Seção](/rota) E chame a tool 'navigateSite' para redirecionar se o usuário expressar desejo de ir.
+- "Quer ver nossos projetos? Acesse o [Portfólio](/portfolio)"
+- "Conheça nosso [Escritório](/office)"
+- "Entre em [Contato](/contact)"
+
+CONTEXTO E FLUXO:
+1. SE O USUÁRIO ESTIVER LOGADO:
+   - Trate-o pelo nome.
+   - Use o histórico de memórias anteriores para personalizar a conversa.
+
+2. ESTILO DE RESPOSTA:
+   - Português do Brasil culto.
+   - Respostas curtas e objetivas.
+`;
 
 export async function chatWithConcierge(
   message: ChatMessage[] | string,
@@ -28,61 +159,127 @@ export async function chatWithConcierge(
     culturalProjects: CulturalProject[];
   },
   aiConfig: any
-): Promise<ChatResponse> {
+) {
+  const apiKey = process.env.API_KEY;
 
-  // Prepare payload for Edge Function
-  const payload = {
-    message,
-    context,
-    aiConfig
-  };
+  if (!apiKey) {
+    return {
+      text: "O sistema de IA está em modo de demonstração (Sem API Key).",
+      role: 'model'
+    };
+  }
 
-  try {
-    console.log('[Chat] Calling Edge Function chat-ai...');
-    const { data, error } = await supabase.functions.invoke('chat-ai', {
-      body: payload
+  const ai = new GoogleGenAI({ apiKey });
+
+  // Construct System Instruction based on Toggle
+  let systemInstruction = aiConfig.useCustomSystemInstruction
+    ? aiConfig.systemInstruction
+    : DEFAULT_SYSTEM_INSTRUCTION;
+
+  // Add Date Context
+  const now = new Date();
+  const brTime = now.toLocaleString('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    dateStyle: 'full',
+    timeStyle: 'short'
+  });
+
+  systemInstruction += `\n\n[CONTEXTO TEMPORAL]:
+  - Data/Hora Atual em Santa Leopoldina: ${brTime}.
+  `;
+
+  // Inject Projects
+  if (context.projects && context.projects.length > 0) {
+    systemInstruction += `\n\n[PORTFÓLIO ATUAL - PROJETOS DISPONÍVEIS]:`;
+    context.projects.slice(0, 8).forEach(proj => {
+      systemInstruction += `\n- "${proj.title}" (${proj.category}, ${proj.year}) em ${proj.location} - ${proj.area}m²`;
     });
+  }
 
-    if (error) {
-      console.error('[Chat] Edge Function Error:', error);
-      throw new Error(error.message || 'Erro na comunicação com o servidor de IA');
+  if (context.culturalProjects && context.culturalProjects.length > 0) {
+    systemInstruction += `\n\n[PROJETOS CULTURAIS]:`;
+    context.culturalProjects.slice(0, 5).forEach(cult => {
+      systemInstruction += `\n- "${cult.title}" (${cult.category}) - ${cult.location}`;
+    });
+  }
+
+  // Inject Office Address and Hours dynamically from Admin Context
+  if (context.office) {
+    systemInstruction += `\n\n[DADOS DO ESCRITÓRIO - FONTE DE VERDADE]:
+    - Endereço Oficial: ${context.office.address}
+    - Cidade/Estado: ${context.office.city} - ${context.office.state}
+    - Horário: ${context.office.hoursDescription}
+    `;
+  }
+
+  if (context?.user) {
+    systemInstruction += `\n\n[PERFIL DO CLIENTE]:
+    - Nome: ${context.user.name}
+    - Email: ${context.user.email}
+    `;
+
+    if (context.user.addresses && context.user.addresses.length > 0) {
+      systemInstruction += `\n- Endereços Salvos:`;
+      context.user.addresses.forEach(addr => {
+        systemInstruction += `\n  * [${addr.label}]: ${addr.street}, ${addr.number} (${addr.city})`;
+      });
     }
 
-    // Data structure returned from Edge Function: { text: string, functionCalls: ToolCall[] }
-    const modelText = data.text;
-    const functionCalls = data.functionCalls as ToolCall[];
+    if (context.memories && context.memories.length > 0) {
+      systemInstruction += `\n\n[MEMÓRIAS (O QUE JÁ SABEMOS)]:`;
+      context.memories.forEach((mem: any) => {
+        systemInstruction += `\n- [${mem.topic}]: ${mem.content}`;
+      });
+    }
+  }
 
-    let responseData: ChatResponse = {
+  const modelName = aiConfig?.model || 'gemini-2.5-flash';
+
+  let contents = [];
+  if (Array.isArray(message)) {
+    contents = message.map((msg: any) => ({
+      role: msg.role,
+      parts: [{ text: msg.text }]
+    }));
+  } else {
+    contents = [{ role: 'user', parts: [{ text: typeof message === 'string' ? message : '' }] }];
+  }
+
+  // Filter out system messages or non-standard roles
+  contents = contents.filter(c => c.role === 'user' || c.role === 'model');
+
+  try {
+    const response = await ai.models.generateContent({
+      model: modelName,
+      contents: contents,
+      config: {
+        systemInstruction: systemInstruction,
+        tools: tools,
+        temperature: aiConfig?.temperature || 0.7,
+      },
+    });
+
+    const modelText = response.text;
+    const functionCalls = response.functionCalls as any[]; // Cast to any[] to fix type error
+
+    let responseData: any = {
       role: 'model',
       text: modelText || "",
       actions: []
     };
 
-    // Process function calls (Tools) - Client side logic for UI Components & Side Effects
     if (functionCalls && functionCalls.length > 0) {
       for (const call of functionCalls) {
         if (call.name === 'showProjects') {
           responseData.uiComponent = { type: 'ProjectCarousel', data: call.args };
           if (!responseData.text) responseData.text = "Aqui estão alguns projetos selecionados.";
         }
-        else if (call.name === 'showCulturalProjects') {
-          responseData.uiComponent = { type: 'CulturalCarousel', data: call.args };
-          if (!responseData.text) responseData.text = "Aqui estão alguns dos nossos projetos culturais:";
-        }
-        else if (call.name === 'showProducts') {
-          responseData.uiComponent = { type: 'ProductCarousel', data: {} };
-          if (!responseData.text) responseData.text = "Confira alguns produtos disponíveis na nossa loja:";
-        }
-        else if (call.name === 'showOfficeMap') {
-          responseData.uiComponent = { type: 'OfficeMap', data: {} };
-          if (!responseData.text) responseData.text = "Aqui está a localização do nosso escritório:";
-        }
         else if (call.name === 'saveClientNote') {
           const userName = call.args['name'] || (context.user ? context.user.name : 'Anônimo');
           const userContact = call.args['contact'] || (context.user ? context.user.email : 'Não informado');
           const noteMessage = call.args['message'];
 
-          responseData.actions!.push({
+          responseData.actions.push({
             type: 'saveNote',
             payload: {
               userName: userName,
@@ -92,7 +289,7 @@ export async function chatWithConcierge(
             }
           });
 
-          // Side effect: Notify via Email (Frontend initiates this for now)
+          // Notificação de E-mail (Brevo) - Fire and forget
           notifyNewChatbotNote({
             userName: userName,
             userContact: userContact,
@@ -102,7 +299,7 @@ export async function chatWithConcierge(
           if (!responseData.text) responseData.text = "Recebido. Sua mensagem foi encaminhada.";
         }
         else if (call.name === 'autoNoteInterest') {
-          responseData.actions!.push({
+          responseData.actions.push({
             type: 'saveNote',
             payload: {
               userName: context.user ? context.user.name : 'Visitante Interessado',
@@ -113,7 +310,7 @@ export async function chatWithConcierge(
           });
         }
         else if (call.name === 'learnClientPreference') {
-          responseData.actions!.push({
+          responseData.actions.push({
             type: 'learnMemory',
             payload: {
               topic: call.args['topic'],
@@ -121,8 +318,9 @@ export async function chatWithConcierge(
               type: 'system_detected'
             }
           });
+          // Ensure a response text exists - fallback if AI didn't provide one
           if (!responseData.text || responseData.text.trim() === '') {
-            responseData.text = "Entendido! Vou lembrar dessa informação para melhor atendê-lo.";
+            responseData.text = "Entendido! Vou registrar essa preferência para melhor atendê-lo.";
           }
         }
         else if (call.name === 'getSocialLinks') {
@@ -130,21 +328,16 @@ export async function chatWithConcierge(
           if (!responseData.text) responseData.text = "Aqui estão nossos canais de contato.";
         }
         else if (call.name === 'navigateSite') {
-          responseData.actions!.push({
+          responseData.actions.push({
             type: 'navigate',
             payload: { path: call.args['path'] }
           });
           if (!responseData.text) responseData.text = `Redirecionando para ${call.args['path']}...`;
         }
-        else if (call.name === 'requestHumanAgent') {
-          responseData.actions!.push({
-            type: 'requestHuman',
-            payload: {}
-          });
-          responseData.text = "Estou transferindo você para um de nossos arquitetos especializados. Aguarde um momento...";
-        }
         else if (call.name === 'scheduleMeeting') {
           const widgetData = { ...call.args };
+
+          // Check Required Fields
           const isVisit = widgetData.type === 'visit';
           const hasAddress = isVisit ? (widgetData.address && widgetData.address.length > 5) : true;
           const isMeeting = widgetData.type === 'meeting';
@@ -152,87 +345,20 @@ export async function chatWithConcierge(
 
           if (isVisit && !hasAddress) {
             responseData.text = "Para agendar a visita técnica, preciso saber o endereço completo da obra.";
+            // No UI component implies asking again
           } else if (isMeeting && !hasModality) {
             responseData.text = "Para a reunião, você prefere que seja online ou presencial?";
+            // No UI component implies asking again
           } else {
+            // Success - Show Calendar
             if (widgetData.modality === 'online') {
               widgetData.location = 'Online (Google Meet)';
             }
+            // Always show widget to pick date, even if user hallucinated a date in text
             responseData.uiComponent = { type: 'CalendarWidget', data: widgetData };
             if (!responseData.text) responseData.text = "Verifiquei nossa agenda. Por favor, selecione abaixo o melhor dia e horário para você.";
           }
         }
-        else if (call.name === 'showBudgetOptions') {
-          responseData.uiComponent = { type: 'ServiceRedirect', data: {} };
-          if (!responseData.text) responseData.text = "Para orçamentos, veja nossas opções de serviços.";
-        }
-      }
-    }
-
-    // Override de Texto para Widgets de UI
-    if (responseData.uiComponent?.type === 'CalendarWidget') {
-      responseData.text = "Verifiquei nossa agenda. Por favor, selecione abaixo o melhor dia e horário para você.";
-    } else if (responseData.uiComponent?.type === 'SocialLinks') {
-      responseData.text = "Aqui estão nossos canais de contato direto:";
-    } else if (responseData.uiComponent?.type === 'ProjectCarousel') {
-      responseData.text = "Aqui estão alguns projetos selecionados para você:";
-    }
-
-    // Fallback message arrays for variety
-    const fallbackMessages = {
-      notUnderstood: [
-        "Hmm, acho que me perdi um pouco aí. Pode explicar de outro jeito?",
-        "Opa, não captei bem. Me conta mais sobre o que você precisa?",
-        "Eita, essa eu não peguei! Pode dar mais contexto?",
-        "Me ajuda aqui: o que exatamente você tá buscando?",
-        "Interessante! Mas me explica melhor pra eu poder te ajudar direitinho.",
-        "Quase lá! Só preciso entender melhor o que você quer dizer.",
-        "Hm, fiquei na dúvida. Pode reformular de outra forma?"
-      ],
-      noteSaved: [
-        "✓ Pronto! Sua mensagem já tá com a equipe. Logo entram em contato!",
-        "✓ Anotado! Já repassei pra galera e em breve te retornam.",
-        "✓ Beleza! Encaminhei sua mensagem. Fique tranquilo que vão te responder.",
-        "✓ Feito! A equipe já recebeu e logo volta pra você.",
-        "✓ Recado anotado! Nossa equipe vai te contatar em breve."
-      ],
-      memoryLearned: [
-        "Show! Vou guardar essa info pra te atender ainda melhor.",
-        "Boa! Anotei aqui. Isso vai ajudar nas nossas próximas conversas.",
-        "Legal saber disso! Guardei pra referência futura.",
-        "Entendi! Essa informação vai ser útil.",
-        "Perfeito, vou lembrar disso!"
-      ],
-      navigating: [
-        "Vou te levar pra lá agora mesmo!",
-        "Bora! Te redirecionando...",
-        "Já tô te levando pra essa página!",
-        "Em um segundo você tá lá!"
-      ],
-      budgetInterest: [
-        "Ótimo que você tá interessado! Dá uma olhada nos nossos serviços aqui:",
-        "Show! Pra ter uma ideia de valores, confere nossa página de serviços:",
-        "Legal! Preparei aqui as opções de serviços pra você dar uma olhada:"
-      ]
-    };
-
-    // Helper function to get random fallback
-    const getRandomFallback = (array: string[]): string => {
-      return array[Math.floor(Math.random() * array.length)];
-    };
-
-    if (!responseData.text || responseData.text.trim() === '') {
-      if (responseData.actions?.some((a: any) => a.type === 'saveNote')) {
-        responseData.text = getRandomFallback(fallbackMessages.noteSaved);
-      } else if (responseData.actions?.some((a: any) => a.type === 'learnMemory')) {
-        responseData.text = getRandomFallback(fallbackMessages.memoryLearned);
-      } else if (responseData.actions?.some((a: any) => a.type === 'navigate')) {
-        const navAction = responseData.actions.find((a: any) => a.type === 'navigate');
-        responseData.text = `${getRandomFallback(fallbackMessages.navigating)} (${navAction.payload.path})`;
-      } else if (responseData.uiComponent?.type === 'ServiceRedirect') {
-        responseData.text = getRandomFallback(fallbackMessages.budgetInterest);
-      } else {
-        responseData.text = getRandomFallback(fallbackMessages.notUnderstood);
       }
     }
 
@@ -242,7 +368,7 @@ export async function chatWithConcierge(
     console.error("AI Error:", error);
     return {
       role: 'model',
-      text: "Desculpe, tive um problema de conexão com a inteligência artificial. Tente novamente em alguns segundos."
+      text: "Desculpe, tive um problema de conexão. Poderia repetir?"
     };
   }
 }

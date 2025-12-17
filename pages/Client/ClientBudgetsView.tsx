@@ -3,7 +3,6 @@ import { Search, Receipt, Calendar, MapPin, Package } from 'lucide-react';
 import { BudgetRequest, BudgetStatus, BUDGET_STATUS_LABELS, BUDGET_STATUS_COLORS } from '../../types/budgetTypes';
 import { motion } from 'framer-motion';
 import { supabase } from '../../supabaseClient';
-import { normalizeString } from '../../utils/stringUtils';
 
 interface ClientBudgetsViewProps {
     onViewDetails: (id: string) => void;
@@ -17,21 +16,9 @@ export const ClientBudgetsView: React.FC<ClientBudgetsViewProps> = ({ onViewDeta
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<BudgetStatus | 'all'>('all');
 
-    // Buscar orçamentos do cliente com timeout de segurança
+    // Buscar orçamentos do cliente
     useEffect(() => {
-        let timeoutId: ReturnType<typeof setTimeout>;
-
-        // Safety timeout - ensure loading ends after 10 seconds max
-        timeoutId = setTimeout(() => {
-            if (loading) {
-                console.warn('[ClientBudgetsView] Timeout: Forçando fim do loading');
-                setLoading(false);
-            }
-        }, 10000);
-
         fetchClientBudgets();
-
-        return () => clearTimeout(timeoutId);
     }, [clientId]);
 
     const fetchClientBudgets = async () => {
@@ -71,10 +58,10 @@ export const ClientBudgetsView: React.FC<ClientBudgetsViewProps> = ({ onViewDeta
 
     // Filter logic
     const filteredRequests = budgetRequests.filter(request => {
-        const normalizedSearch = normalizeString(searchTerm);
+        const searchLower = searchTerm.toLowerCase();
         const matchesSearch =
-            normalizeString(request.projectCity).includes(normalizedSearch) ||
-            normalizeString(request.observations || '').includes(normalizedSearch);
+            request.projectCity.toLowerCase().includes(searchLower) ||
+            (request.observations || '').toLowerCase().includes(searchLower);
 
         const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
 

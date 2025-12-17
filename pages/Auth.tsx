@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { FcGoogle } from 'react-icons/fc';
 import { useProjects } from '../context/ProjectContext';
@@ -40,7 +40,6 @@ export const Auth: React.FC = () => {
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { login } = useProjects();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -59,9 +58,8 @@ const Login: React.FC = () => {
       if (error) {
         setError(error.message);
       } else {
-        // Redirect to specified URL or profile
-        const redirectTo = searchParams.get('redirect') || '/profile';
-        navigate(redirectTo, { replace: true });
+        // Force redirect to profile with replace to clear history stack
+        navigate('/profile', { replace: true });
       }
     } catch (err) {
       setError('Ocorreu um erro inesperado.');
@@ -177,7 +175,6 @@ const Login: React.FC = () => {
 const Register: React.FC = () => {
   const { registerUser } = useProjects();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -209,8 +206,7 @@ const Register: React.FC = () => {
       if (error) {
         setError(error.message);
       } else {
-        const redirectTo = searchParams.get('redirect') || '/profile';
-        navigate(redirectTo, { replace: true });
+        navigate('/profile', { replace: true });
       }
     } catch (err) {
       setError("Erro inesperado ao criar conta.");
@@ -374,12 +370,13 @@ const ResetPassword: React.FC = () => {
     let timeoutId: ReturnType<typeof setTimeout>;
 
     const verifySession = async () => {
-      // SECURITY: Only log in DEV and never log full URLs/tokens
-      if ((import.meta as any).env?.DEV) console.log('[ResetPassword] Iniciando verificação de sessão...');
+      console.log('[ResetPassword] Iniciando verificação de sessão...');
+      console.log('[ResetPassword] URL completa:', window.location.href);
+      console.log('[ResetPassword] Hash:', window.location.hash);
 
       // Timeout de segurança - 5 segundos
       timeoutId = setTimeout(() => {
-        if ((import.meta as any).env?.DEV) console.error('[ResetPassword] TIMEOUT! setSession demorou mais de 5s');
+        console.error('[ResetPassword] TIMEOUT! setSession demorou mais de 5s');
         setError('Timeout ao processar link. Tente novamente ou solicite nova recuperação.');
         setSessionValid(false);
         setVerifying(false);
@@ -391,7 +388,7 @@ const ResetPassword: React.FC = () => {
         const hash = window.location.hash;
         const parts = hash.split('#');
 
-        // SECURITY: Don't log hash/token content
+        console.log('[ResetPassword] Hash dividido em partes:', parts);
 
         let accessToken = null;
         let refreshToken = null;
@@ -399,34 +396,33 @@ const ResetPassword: React.FC = () => {
 
         if (parts.length > 2) {
           // Tem segundo hash - processar tokens
-          if ((import.meta as any).env?.DEV) console.log('[ResetPassword] Encontrado segundo hash, parseando tokens...');
+          console.log('[ResetPassword] Encontrado segundo hash, parseando tokens...');
           const tokenParams = new URLSearchParams(parts[2]);
           accessToken = tokenParams.get('access_token');
           refreshToken = tokenParams.get('refresh_token');
           type = tokenParams.get('type');
 
-          // SECURITY: Only log token presence, not actual values
-          if ((import.meta as any).env?.DEV) console.log('[ResetPassword] Token info:', {
+          console.log('[ResetPassword] Token extraído:', {
             hasAccessToken: !!accessToken,
             hasRefreshToken: !!refreshToken,
             type
           });
         } else {
-          if ((import.meta as any).env?.DEV) console.log('[ResetPassword] Não há segundo hash na URL');
+          console.log('[ResetPassword] Não há segundo hash na URL');
         }
 
         // Se tiver tokens na URL, validar diretamente (NÃO usar setSession - trava)
         if (accessToken && type === 'recovery') {
-          if ((import.meta as any).env?.DEV) console.log('[ResetPassword] Token de recovery válido!');
+          console.log('[ResetPassword] Token de recovery válido! Permitindo reset de senha.');
           clearTimeout(timeoutId);
           setSessionValid(true);
         } else {
-          if ((import.meta as any).env?.DEV) console.log('[ResetPassword] Verificando sessão existente...');
+          console.log('[ResetPassword] Sem tokens na URL, verificando sessão existente...');
           // Se não tiver tokens na URL, verificar sessão existente
           const { data: { session }, error } = await supabase.auth.getSession();
 
           clearTimeout(timeoutId); // Cancela timeout
-          if ((import.meta as any).env?.DEV) console.log('[ResetPassword] Sessão existente:', { hasSession: !!session, hasError: !!error });
+          console.log('[ResetPassword] Sessão existente:', { hasSession: !!session, error });
 
           if (error || !session) {
             setError('Link inválido ou expirado. Solicite uma nova recuperação de senha.');
@@ -437,11 +433,11 @@ const ResetPassword: React.FC = () => {
         }
       } catch (err) {
         clearTimeout(timeoutId); // Cancela timeout em caso de erro
-        if ((import.meta as any).env?.DEV) console.error('[ResetPassword] Erro ao verificar sessão:', err);
+        console.error('[ResetPassword] Erro ao verificar sessão:', err);
         setError('Erro ao verificar sessão. Tente novamente.');
         setSessionValid(false);
       } finally {
-        if ((import.meta as any).env?.DEV) console.log('[ResetPassword] Verificação concluída');
+        console.log('[ResetPassword] Verificação concluída, setando verifying = false');
         setVerifying(false);
       }
     };
@@ -484,7 +480,7 @@ const ResetPassword: React.FC = () => {
         return;
       }
 
-      if ((import.meta as any).env?.DEV) console.log('[ResetPassword] Atualizando senha...');
+      console.log('[ResetPassword] Atualizando senha com token via API...');
 
       // Cham ada direta à API do Supabase (NÃO usar setSession - trava!)
       const supabaseUrl = (import.meta as any).env.VITE_SUPABASE_URL;
@@ -501,15 +497,15 @@ const ResetPassword: React.FC = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        if ((import.meta as any).env?.DEV) console.error('[ResetPassword] Erro da API:', data?.error || 'Unknown');
+        console.error('[ResetPassword] Erro da API:', data);
         setError('Erro ao redefinir senha. Verifique se o link ainda é válido.');
       } else {
-        if ((import.meta as any).env?.DEV) console.log('[ResetPassword] Senha atualizada com sucesso!');
+        console.log('[ResetPassword] Senha atualizada com sucesso!');
         setSuccess(true);
         setTimeout(() => navigate('/auth'), 2000);
       }
     } catch (err) {
-      if ((import.meta as any).env?.DEV) console.error('[ResetPassword] Erro inesperado');
+      console.error('[ResetPassword] Erro inesperado:', err);
       setError('Ocorreu um erro inesperado. Tente novamente.');
     } finally {
       setLoading(false);

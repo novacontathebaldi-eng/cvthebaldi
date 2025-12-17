@@ -5,11 +5,10 @@ import { useParams, Link } from 'react-router-dom';
 import { useProjects } from '../context/ProjectContext';
 import { Heart, ArrowLeft, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LoadingScreen } from '../components/loading';
 
 export const ProjectDetails: React.FC = () => {
   const { id } = useParams();
-  const { projects, isLoadingData } = useProjects();
+  const { projects } = useProjects();
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isLargeScreen, setIsLargeScreen] = useState(false);
@@ -46,6 +45,10 @@ export const ProjectDetails: React.FC = () => {
     }
   }, [project]);
 
+  if (!project) {
+    return <div className="min-h-screen flex items-center justify-center text-gray-500">Projeto não encontrado.</div>;
+  }
+
   const openLightbox = (index: number) => setLightboxIndex(index);
   const closeLightbox = () => setLightboxIndex(null);
 
@@ -62,9 +65,6 @@ export const ProjectDetails: React.FC = () => {
       setLightboxIndex((lightboxIndex - 1 + allImages.length) % allImages.length);
     }
   };
-
-  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
-  // This is a React rule - hooks must be called in the same order every render
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -112,17 +112,6 @@ export const ProjectDetails: React.FC = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  // CONDITIONAL RETURNS - AFTER all hooks have been called
-  // Show loading while data is being fetched
-  if (isLoadingData || (projects.length === 0 && id)) {
-    return <LoadingScreen message="Carregando projeto..." />;
-  }
-
-  // Only show not found AFTER data has loaded AND projects array is populated
-  if (!project) {
-    return <div className="min-h-screen flex items-center justify-center text-gray-500">Projeto não encontrado.</div>;
-  }
 
   return (
     <div className="bg-white">
@@ -185,14 +174,12 @@ export const ProjectDetails: React.FC = () => {
           transition={{ duration: 2, ease: "easeOut" }}
           src={project.image}
           className="w-full h-full object-cover"
-          loading="lazy"
-          decoding="async"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end pb-12 md:pb-20 px-6 md:px-12">
           <div className="container mx-auto relative z-10">
-            <button onClick={() => window.history.back()} className="text-white hover:text-white mb-6 flex items-center space-x-2 text-xs md:text-sm uppercase tracking-widest transition cursor-pointer" style={{ textShadow: '0 0 2px rgba(0,0,0,0.8), 0 0 4px rgba(0,0,0,0.6)' }}>
-              <ArrowLeft className="w-4 h-4" /> <span>Voltar</span>
-            </button>
+            <Link to="/portfolio" className="text-white hover:text-white mb-6 flex items-center space-x-2 text-xs md:text-sm uppercase tracking-widest transition" style={{ textShadow: '0 0 2px rgba(0,0,0,0.8), 0 0 4px rgba(0,0,0,0.6)' }}>
+              <ArrowLeft className="w-4 h-4" /> <span>Voltar para Portfólio</span>
+            </Link>
             <motion.span
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -331,8 +318,6 @@ export const ProjectDetails: React.FC = () => {
                           src={block.content}
                           className="w-full h-auto transition-transform duration-1000 ease-in-out hover:scale-105"
                           alt="Project detail"
-                          loading="lazy"
-                          decoding="async"
                         />
                       </div>
                       {block.caption && <p className="text-xs text-gray-400 mt-2 text-center">{block.caption}</p>}
@@ -354,8 +339,6 @@ export const ProjectDetails: React.FC = () => {
                             src={url}
                             className="w-full h-64 md:h-96 object-cover transition-transform duration-1000 ease-in-out hover:scale-110"
                             alt="Grid detail"
-                            loading="lazy"
-                            decoding="async"
                           />
                         </div>
                       ))}
@@ -386,7 +369,6 @@ export const ProjectDetails: React.FC = () => {
                       src={img}
                       className="w-full h-auto object-cover transition-transform duration-1000 ease-in-out group-hover:scale-105"
                       loading="lazy"
-                      decoding="async"
                     />
                   </motion.div>
                 ))}

@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect } from 'react';
-import { Project, User, SiteContent, GlobalSettings, Message, ClientMemory, ChatMessage, ClientFolder, ClientFile, AiFeedbackItem, Appointment, ScheduleSettings, Address, CulturalProject, ChatSession, ShopProduct, ShopOrder, ShopOrderItem } from '../types';
+import { Project, User, SiteContent, GlobalSettings, AdminNote, ClientMemory, ChatMessage, ClientFolder, ClientFile, AiFeedbackItem, Appointment, ScheduleSettings, Address, CulturalProject, ChatSession } from '../types';
 import { chatWithConcierge } from '../api/chat';
 import { supabase } from '../supabaseClient';
 import { notifyNewAppointment } from '../utils/emailService';
@@ -19,7 +19,7 @@ interface ProjectContextType {
   users: User[];
   siteContent: SiteContent;
   settings: GlobalSettings;
-  messages: Message[];
+  adminNotes: AdminNote[];
   aiFeedbacks: AiFeedbackItem[];
   isLoadingAuth: boolean;
   isLoadingData: boolean;
@@ -39,7 +39,6 @@ interface ProjectContextType {
 
   updateSiteContent: (content: SiteContent) => void;
   updateSettings: (settings: GlobalSettings) => void;
-  persistAllSettings: (content: SiteContent, settings: GlobalSettings, schedule: ScheduleSettings) => Promise<boolean>;
 
   sendMessageToAI: (message: string) => Promise<any>;
   addMessageToChat: (message: ChatMessage) => void;
@@ -65,14 +64,9 @@ interface ProjectContextType {
 
   updateUser: (user: User) => Promise<boolean>;
 
-  // Address Management
-  addAddress: (address: Omit<Address, 'id'>) => Promise<Address | null>;
-  updateAddress: (address: Address) => Promise<boolean>;
-  deleteAddress: (addressId: string) => Promise<boolean>;
-
-  addMessage: (msg: Omit<Message, 'id' | 'createdAt' | 'status'>) => Promise<void>;
-  updateMessageStatus: (id: string, status: Message['status']) => Promise<void>;
-  deleteMessage: (id: string) => Promise<void>;
+  addAdminNote: (note: Omit<AdminNote, 'id' | 'date' | 'status'>) => void;
+  markNoteAsRead: (id: string) => void;
+  deleteAdminNote: (id: string) => void;
 
   appointments: Appointment[];
   scheduleSettings: ScheduleSettings;
@@ -86,22 +80,6 @@ interface ProjectContextType {
   toast: ToastState;
   showToast: (message: string, type?: ToastType) => void;
   hideToast: () => void;
-
-  // Shop / E-Commerce
-  shopProducts: ShopProduct[];
-  shopOrders: ShopOrder[];
-  fetchShopProducts: () => Promise<void>;
-  addShopProduct: (product: Omit<ShopProduct, 'id' | 'created_at' | 'updated_at'>) => Promise<ShopProduct | null>;
-  updateShopProduct: (product: ShopProduct) => Promise<boolean>;
-  deleteShopProduct: (id: string) => Promise<boolean>;
-  fetchShopOrders: () => Promise<void>;
-  updateShopOrderStatus: (orderId: string, status: ShopOrder['status']) => Promise<boolean>;
-  createShopOrder: (order: Omit<ShopOrder, 'id' | 'created_at' | 'updated_at'>, items: { productId: string; quantity: number; unitPrice: number }[]) => Promise<ShopOrder | null>;
-  subscribeToShopProducts: () => (() => void) | undefined;
-  subscribeToProjects: () => (() => void) | undefined;
-  subscribeToCulturalProjects: () => (() => void) | undefined;
-  subscribeToMessages: () => (() => void) | undefined;
-  subscribeToSiteSettings: () => (() => void) | undefined;
 }
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
@@ -118,18 +96,6 @@ const DEFAULT_SETTINGS: GlobalSettings = {
     systemInstruction: `VOCÊ É O "CONCIERGE DIGITAL" DA FRAN SILLER ARQUITETURA...`,
     defaultGreeting: "Olá {name}. Sou o Concierge Digital Fran Siller. Como posso tornar seu dia melhor?",
     temperature: 0.7
-  },
-  chatbotConfig: {
-    quickActions: [
-      { id: '1', label: 'Agendar Reunião', message: 'Olá! Gostaria de agendar uma reunião para conhecer melhor o escritório.', icon: 'Calendar', order: 1, active: true },
-      { id: '2', label: 'Solicitar Orçamento', message: 'Olá! Preciso de um orçamento para um projeto de arquitetura.', icon: 'Receipt', order: 2, active: true },
-      { id: '3', label: 'Ver Portfólio', message: 'Gostaria de ver alguns projetos do portfólio.', icon: 'Folder', order: 3, active: true },
-      { id: '4', label: 'Falar com Atendente', message: 'Gostaria de falar com um atendente humano, por favor.', icon: 'User', order: 4, active: true }
-    ],
-    welcomeMessage: 'Olá! Como posso ajudar você hoje?',
-    transferToHumanEnabled: false,
-    fallbackMessage: 'Desculpe, não consegui entender. Posso te ajudar de outra forma?',
-    showQuickActionsOnOpen: true
   }
 };
 
@@ -174,12 +140,7 @@ const DEFAULT_SITE_CONTENT: SiteContent = {
     hoursDescription: 'Segunda a Sexta, 09h às 17h',
     email: 'contato@fransiller.com.br',
     phone: '+55 (27) 99667-0426',
-    blocks: [],
-    // Dynamic social links array - stored in database
-    socialLinks: [],
-    // Contact page config
-    faqItems: [],
-    contactSubjects: ['Orçamento de Projeto', 'Dúvidas Gerais', 'Imprensa / Mídia', 'Parcerias']
+    blocks: []
   }
 };
 
@@ -227,7 +188,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   });
 
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [adminNotes, setAdminNotes] = useState<AdminNote[]>([]);
   const [aiFeedbacks, setAiFeedbacks] = useState<AiFeedbackItem[]>([]);
   const [toast, setToast] = useState<ToastState>({ message: '', type: 'info', isVisible: false });
 
@@ -238,10 +199,6 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
   // Settings & Content
   const [settings, setSettings] = useState<GlobalSettings>(DEFAULT_SETTINGS);
   const [siteContent, setSiteContent] = useState<SiteContent>(DEFAULT_SITE_CONTENT);
-
-  // Shop / E-commerce State
-  const [shopProducts, setShopProducts] = useState<ShopProduct[]>([]);
-  const [shopOrders, setShopOrders] = useState<ShopOrder[]>([]);
 
   // --- PERSISTENCE EFFECT FOR CHAT ---
   useEffect(() => {
@@ -276,31 +233,17 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
       const { data: userAppts } = await supabase.from('appointments').select('*').eq('client_id', userId);
       const mappedAppts = userAppts ? userAppts.map(mapAppointment) : [];
 
-      // Fetch addresses from the addresses table (not JSONB)
-      const { data: addressesData } = await supabase.from('addresses').select('*').eq('user_id', userId);
-      const mappedAddresses: Address[] = addressesData ? addressesData.map((a: any) => ({
-        id: a.id,
-        label: a.label || '',
-        street: a.street || '',
-        number: a.number || '',
-        complement: a.complement || '',
-        district: a.district || '',
-        city: a.city || '',
-        state: a.state || '',
-        zipCode: a.zip_code || ''
-      })) : [];
-
       return {
         id: profile.id,
         name: profile.name,
         email: profile.email,
         role: profile.role as 'admin' | 'client',
         phone: profile.phone,
-        avatar: profile.avatar_url, // Use correct column name
+        avatar: profile.avatar,
         bio: profile.bio,
         cpf: profile.cpf,
         birthDate: profile.birth_date,
-        addresses: mappedAddresses,
+        addresses: profile.addresses || [],
 
         memories: memories || [],
         folders: folders || [],
@@ -318,16 +261,12 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   // --- INITIAL DATA FETCHING ---
   const fetchGlobalData = async () => {
-    if ((import.meta as any).env?.DEV) console.log('📊 DB: Query executed', { operation: 'fetchGlobalData', timestamp: new Date().toISOString() });
-
     // 1. Projects
-    const { data: projectsData, error: projectsError } = await supabase.from('projects').select('*').order('year', { ascending: false });
-    if ((import.meta as any).env?.DEV) console.log('📊 DB: Query result', { table: 'projects', count: projectsData?.length || 0, error: projectsError?.message, timestamp: new Date().toISOString() });
+    const { data: projectsData } = await supabase.from('projects').select('*').order('year', { ascending: false });
     if (projectsData) setProjects(projectsData);
 
     // 2. Cultural Projects
-    const { data: cultData, error: cultError } = await supabase.from('cultural_projects').select('*').order('year', { ascending: false });
-    if ((import.meta as any).env?.DEV) console.log('📊 DB: Query result', { table: 'cultural_projects', count: cultData?.length || 0, error: cultError?.message, timestamp: new Date().toISOString() });
+    const { data: cultData } = await supabase.from('cultural_projects').select('*').order('year', { ascending: false });
     if (cultData) setCulturalProjects(cultData);
 
     // 3. Settings & Content - USING UUID AND 3 COLUMNS
@@ -348,16 +287,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
       const savedBundle = settingsRow.settings || {};
 
       if (savedBundle.global) {
-        // Deep merge to preserve nested properties like chatbotConfig and aiConfig
-        setSettings({
-          ...DEFAULT_SETTINGS,
-          ...savedBundle.global,
-          aiConfig: {
-            ...DEFAULT_SETTINGS.aiConfig,
-            ...(savedBundle.global.aiConfig || {})
-          },
-          chatbotConfig: savedBundle.global.chatbotConfig || DEFAULT_SETTINGS.chatbotConfig
-        });
+        setSettings({ ...DEFAULT_SETTINGS, ...savedBundle.global });
       }
       if (savedBundle.schedule) {
         setScheduleSettings({ ...DEFAULT_SCHEDULE_SETTINGS, ...savedBundle.schedule });
@@ -372,59 +302,15 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
       setAppointments(mapped);
     }
 
-    // 5. Messages (Unified)
-    try {
-      const { data: msgData, error: msgError } = await supabase
-        .from('messages')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (msgError) {
-        if ((import.meta as any).env?.DEV) console.error('[Data] Messages fetch error:', msgError);
-      } else if (msgData) {
-        const mapped: Message[] = msgData.map((m: any) => ({
-          id: m.id,
-          name: m.name,
-          email: m.email,
-          phone: m.phone,
-          subject: m.subject,
-          message: m.message,
-          source: m.source,
-          status: m.status,
-          createdAt: m.created_at
-        }));
-        setMessages(mapped);
-      }
-    } catch (err) {
-      if ((import.meta as any).env?.DEV) console.error('[Data] Messages fetch unexpected error:', err);
-    }
-
-    if ((import.meta as any).env?.DEV) console.log('[Data] fetchGlobalData complete!');
     setIsLoadingData(false);
   };
 
-  // Guard and tracking refs for multi-tab race condition prevention
-  const isProcessingAuthRef = React.useRef(false);
-  const lastProcessedUserIdRef = React.useRef<string | null>(null);
-  const authDebounceTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Guard against double initialization (React StrictMode, HMR, etc.)
-  const hasInitializedRef = React.useRef(false);
-
   useEffect(() => {
-    // Prevent double initialization in React StrictMode
-    if (hasInitializedRef.current) {
-      if ((import.meta as any).env?.DEV) console.log('[Init] Skipping duplicate initialization');
-      return;
-    }
-    hasInitializedRef.current = true;
-
     const init = async () => {
       await fetchGlobalData();
 
       const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user?.id) {
-        lastProcessedUserIdRef.current = session.user.id;
+      if (session) {
         const user = await fetchFullUserProfile(session.user.id);
         if (user) setCurrentUser(user);
       }
@@ -433,92 +319,27 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     init();
 
-    // MULTI-TAB FIX: Handle auth state changes with debounce to prevent rapid duplicate events
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if ((import.meta as any).env?.DEV) console.log('[Auth] Event:', event, 'Session:', session?.user?.id);
-
-      // Clear any pending debounce timer
-      if (authDebounceTimerRef.current) {
-        clearTimeout(authDebounceTimerRef.current);
-      }
-
-      // Handle SIGNED_OUT immediately - no debounce needed
-      if (event === 'SIGNED_OUT') {
-        lastProcessedUserIdRef.current = null;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session) {
+        // Only fetch if we don't have the user or it's a different user
+        if (!currentUser || currentUser.id !== session.user.id) {
+          const user = await fetchFullUserProfile(session.user.id);
+          if (user) setCurrentUser(user);
+        }
+      } else {
         setCurrentUser(null);
-        setIsLoadingAuth(false);
-        return;
+        // Do NOT clear chat messages on logout to preserve context for the user
       }
-
-      // TOKEN_REFRESHED doesn't need user refetch
-      if (event === 'TOKEN_REFRESHED') {
-        if ((import.meta as any).env?.DEV) console.log('[Auth] Token refreshed - no action needed');
-        setIsLoadingAuth(false);
-        return;
-      }
-
-      // Skip if same user already processed (prevents duplicate SIGNED_IN events across tabs)
-      const userId = session?.user?.id;
-      if (userId && userId === lastProcessedUserIdRef.current && !isProcessingAuthRef.current) {
-        if ((import.meta as any).env?.DEV) console.log('[Auth] Same user already processed, skipping');
-        setIsLoadingAuth(false);
-        return;
-      }
-
-      // Skip if currently processing
-      if (isProcessingAuthRef.current) {
-        if ((import.meta as any).env?.DEV) console.log('[Auth] Skipping - already processing');
-        return;
-      }
-
-      // Debounce: wait 100ms before processing to batch rapid events
-      authDebounceTimerRef.current = setTimeout(async () => {
-        if (isProcessingAuthRef.current) {
-          if ((import.meta as any).env?.DEV) console.log('[Auth] Debounced but already processing');
-          return;
-        }
-
-        if (session?.user?.id && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
-          isProcessingAuthRef.current = true;
-          try {
-            if ((import.meta as any).env?.DEV) console.log('[Auth] Processing user:', session.user.id);
-            const user = await fetchFullUserProfile(session.user.id);
-            if (user) {
-              setCurrentUser(user);
-              lastProcessedUserIdRef.current = session.user.id;
-            }
-          } catch (error) {
-            console.error('[Auth] Error fetching user profile:', error);
-          } finally {
-            isProcessingAuthRef.current = false;
-          }
-        } else if (!session) {
-          setCurrentUser(null);
-          lastProcessedUserIdRef.current = null;
-        }
-
-        setIsLoadingAuth(false);
-      }, 100);
+      setIsLoadingAuth(false);
     });
-
-    // Note: Global subscriptions (Settings, Messages) are now handled in a separate useEffect
-    // below to ensure subscribeToSiteSettings and subscribeToMessages are properly defined
-
-    return () => {
-      if (authDebounceTimerRef.current) {
-        clearTimeout(authDebounceTimerRef.current);
-      }
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, []);
-
 
   // --- Admin: Fetch All Users ---
   useEffect(() => {
     if (currentUser?.role === 'admin') {
       const fetchAllUsers = async () => {
         try {
-          // 1. Fetch Users & Profiles
           const { data: profiles, error } = await supabase.from('profiles').select('*');
           if (error || !profiles) return;
 
@@ -546,35 +367,8 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
           }));
 
           setUsers(mapped);
-
-          // 2. Re-fetch Admin Data (Messages & Appointments) ensures validity after Auth
-          // This fixes the "empty on first load" issue caused by RLS blocking the initial public fetch
-          const { data: msgData } = await supabase.from('messages').select('*').order('created_at', { ascending: false });
-          if (msgData) {
-            const mappedMsgs: Message[] = msgData.map((m: any) => ({
-              id: m.id,
-              name: m.name,
-              email: m.email,
-              phone: m.phone,
-              subject: m.subject,
-              message: m.message,
-              source: m.source,
-              status: m.status,
-              createdAt: m.created_at
-            }));
-            setMessages(mappedMsgs);
-          }
-
-          const { data: aptData } = await supabase.from('appointments').select('*');
-          if (aptData) {
-            setAppointments(aptData.map(mapAppointment));
-          }
-
-          // 3. Fetch Shop Orders (Admin View)
-          fetchShopOrders();
-
         } catch (err) {
-          console.error("Critical error in Admin Data Fetch:", err);
+          console.error("Critical error in Admin User Fetch:", err);
         }
       };
 
@@ -585,19 +379,16 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
   // --- AUTH ACTIONS ---
 
   const login = async (email: string, password: string) => {
-    if ((import.meta as any).env?.DEV) console.log('🔐 AUTH: Login attempt', { email, timestamp: new Date().toISOString() });
     setIsLoadingAuth(true); // Force loading state so ProtectedRoutes wait
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      if ((import.meta as any).env?.DEV) console.log('❌ AUTH ERROR:', { error: error.message, timestamp: new Date().toISOString() });
       setIsLoadingAuth(false);
       return { user: null, error: { message: translateAuthError(error.message) } };
     }
 
     // Force fetch profile immediately to update state BEFORE return
     if (data.user) {
-      if ((import.meta as any).env?.DEV) console.log('🔐 AUTH: Session created', { userId: data.user.id, timestamp: new Date().toISOString() });
       const user = await fetchFullUserProfile(data.user.id);
       setCurrentUser(user);
     }
@@ -607,7 +398,6 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const registerUser = async (name: string, email: string, phone: string, password: string) => {
-    if ((import.meta as any).env?.DEV) console.log('🔐 AUTH: Registration attempt', { email, timestamp: new Date().toISOString() });
     setIsLoadingAuth(true);
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -616,7 +406,6 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     });
 
     if (error) {
-      if ((import.meta as any).env?.DEV) console.log('❌ AUTH ERROR:', { error: error.message, timestamp: new Date().toISOString() });
       setIsLoadingAuth(false);
       return { user: null, error: { message: translateAuthError(error.message) } };
     }
@@ -640,14 +429,12 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const logout = async () => {
-    if ((import.meta as any).env?.DEV) console.log('🔐 AUTH: Logout initiated', { userId: currentUser?.id, timestamp: new Date().toISOString() });
     setCurrentUser(null); // Optimistic clear for immediate UI feedback
     await supabase.auth.signOut();
-    if ((import.meta as any).env?.DEV) console.log('🔐 AUTH: Session cleared', { timestamp: new Date().toISOString() });
   };
 
   // --- SETTINGS PERSISTENCE (FIXED) ---
-  const persistSettings = async (newContent?: SiteContent, newSettings?: GlobalSettings, newSchedule?: ScheduleSettings): Promise<boolean> => {
+  const persistSettings = async (newContent?: SiteContent, newSettings?: GlobalSettings, newSchedule?: ScheduleSettings) => {
     // 1. Determine final state
     const finalContent = newContent || siteContent;
     const finalSettings = newSettings || settings;
@@ -676,9 +463,9 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     if (error) {
       console.error("Error saving settings to DB:", error);
-      return false;
+      showToast("Erro ao salvar alterações no banco de dados.", "error");
+      // Optional: Revert local state if critical
     }
-    return true;
   };
 
   const addProject = async (project: Project) => {
@@ -719,50 +506,16 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (!error) setCulturalProjects(prev => prev.filter(p => p.id !== id));
   };
 
-  const updateSiteContent = async (content: SiteContent): Promise<boolean> => {
-    return await persistSettings(content, undefined, undefined);
+  const updateSiteContent = (content: SiteContent) => {
+    persistSettings(content, undefined, undefined);
   };
 
-  const updateSettings = async (newSettings: GlobalSettings): Promise<boolean> => {
-    return await persistSettings(undefined, newSettings, undefined);
+  const updateSettings = (newSettings: GlobalSettings) => {
+    persistSettings(undefined, newSettings, undefined);
   };
 
-  const updateScheduleSettings = async (newSettings: ScheduleSettings): Promise<boolean> => {
-    return await persistSettings(undefined, undefined, newSettings);
-  };
-
-  // New unified persist function that takes ALL values explicitly to avoid race conditions
-  const persistAllSettings = async (
-    content: SiteContent,
-    globalSettings: GlobalSettings,
-    schedule: ScheduleSettings
-  ): Promise<boolean> => {
-    // Update local state immediately (optimistic UI)
-    setSiteContent(content);
-    setSettings(globalSettings);
-    setScheduleSettings(schedule);
-
-    // Prepare DB Payload
-    const payload = {
-      id: SETTINGS_ID,
-      about: content.about,
-      office: content.office,
-      settings: {
-        global: globalSettings,
-        schedule: schedule
-      }
-    };
-
-    // Send to Supabase
-    const { error } = await supabase
-      .from('site_settings')
-      .upsert(payload, { onConflict: 'id' });
-
-    if (error) {
-      console.error("Error saving all settings to DB:", error);
-      return false;
-    }
-    return true;
+  const updateScheduleSettings = (newSettings: ScheduleSettings) => {
+    persistSettings(undefined, undefined, newSettings);
   };
 
   // UPDATED: Now returns boolean status to caller
@@ -771,9 +524,11 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
       name: updatedUser.name,
       phone: updatedUser.phone,
       bio: updatedUser.bio,
-      avatar_url: updatedUser.avatar, // DB column is avatar_url, not avatar
+      avatar: updatedUser.avatar,
+      addresses: updatedUser.addresses,
       cpf: updatedUser.cpf,
-      birth_date: updatedUser.birthDate
+      birth_date: updatedUser.birthDate,
+      chats: updatedUser.chats
     }).eq('id', updatedUser.id);
 
     if (!error) {
@@ -785,94 +540,6 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
       showToast("Erro ao atualizar perfil.", "error");
       return false;
     }
-  };
-
-  // --- ADDRESS MANAGEMENT ---
-  const addAddress = async (address: Omit<Address, 'id'>): Promise<Address | null> => {
-    if (!currentUser) return null;
-
-    const { data, error } = await supabase.from('addresses').insert({
-      user_id: currentUser.id,
-      label: address.label,
-      street: address.street,
-      number: address.number,
-      complement: address.complement || null,
-      district: address.district,
-      city: address.city,
-      state: address.state,
-      zip_code: address.zipCode
-    }).select().single();
-
-    if (error) {
-      console.error('Error adding address:', error);
-      showToast('Erro ao salvar endereço.', 'error');
-      return null;
-    }
-
-    const newAddress: Address = {
-      id: data.id,
-      label: data.label,
-      street: data.street,
-      number: data.number,
-      complement: data.complement,
-      district: data.district,
-      city: data.city,
-      state: data.state,
-      zipCode: data.zip_code
-    };
-
-    // Update local state
-    const updatedAddresses = [...(currentUser.addresses || []), newAddress];
-    setCurrentUser({ ...currentUser, addresses: updatedAddresses });
-
-    return newAddress;
-  };
-
-  const deleteAddress = async (addressId: string): Promise<boolean> => {
-    if (!currentUser) return false;
-
-    const { error } = await supabase.from('addresses').delete().eq('id', addressId);
-
-    if (error) {
-      console.error('Error deleting address:', error);
-      showToast('Erro ao excluir endereço.', 'error');
-      return false;
-    }
-
-    // Update local state
-    const updatedAddresses = (currentUser.addresses || []).filter(a => a.id !== addressId);
-    setCurrentUser({ ...currentUser, addresses: updatedAddresses });
-
-    return true;
-  };
-
-  const updateAddress = async (address: Address): Promise<boolean> => {
-    if (!currentUser) return false;
-
-    const { error } = await supabase.from('addresses').update({
-      label: address.label,
-      street: address.street,
-      number: address.number,
-      complement: address.complement || null,
-      district: address.district,
-      city: address.city,
-      state: address.state,
-      zip_code: address.zipCode
-    }).eq('id', address.id);
-
-    if (error) {
-      console.error('Error updating address:', error);
-      showToast('Erro ao atualizar endereço.', 'error');
-      return false;
-    }
-
-    // Update local state
-    const updatedAddresses = (currentUser.addresses || []).map(a =>
-      a.id === address.id ? address : a
-    );
-    setCurrentUser({ ...currentUser, addresses: updatedAddresses });
-
-    return true;
   };
 
   const addClientMemory = async (memory: Omit<ClientMemory, 'id' | 'createdAt'>) => {
@@ -1202,523 +869,6 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     setCurrentChatMessages(messages);
   };
 
-  // ==================== SHOP / E-COMMERCE FUNCTIONS ====================
-
-  const fetchShopProducts = async () => {
-    if ((import.meta as any).env?.DEV) console.log('[Shop] Starting fetchShopProducts...');
-    try {
-      const { data, error } = await supabase
-        .from('shop_products')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      if ((import.meta as any).env?.DEV) console.log('[Shop] Products fetched:', data?.length || 0);
-
-      // Map DB format to app format
-      const products: ShopProduct[] = (data || []).map((p: any) => ({
-        id: p.id,
-        title: p.title,
-        description: p.description || '',
-        price: parseFloat(p.price) || 0,
-        images: p.images || [],
-        stock: p.stock || 0,
-        category: p.category || '',
-        status: p.status || 'draft',
-        created_at: p.created_at,
-        updated_at: p.updated_at
-      }));
-
-      setShopProducts(products);
-      if ((import.meta as any).env?.DEV) console.log('[Shop] fetchShopProducts complete!');
-    } catch (error) {
-      console.error('[Shop] Error fetching shop products:', error);
-    }
-  };
-
-  // Subscribe to realtime changes on shop_products table
-  const subscribeToShopProducts = useCallback(() => {
-    const channel = supabase
-      .channel('shop_products_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'shop_products'
-        },
-        (payload) => {
-          console.log('[Realtime] Shop products change:', payload.eventType);
-
-          if (payload.eventType === 'INSERT') {
-            const newProduct: ShopProduct = {
-              id: payload.new.id,
-              title: payload.new.title,
-              description: payload.new.description || '',
-              price: parseFloat(payload.new.price) || 0,
-              images: payload.new.images || [],
-              stock: payload.new.stock || 0,
-              category: payload.new.category || '',
-              status: payload.new.status || 'draft',
-              created_at: payload.new.created_at,
-              updated_at: payload.new.updated_at
-            };
-            setShopProducts(prev => [newProduct, ...prev]);
-          } else if (payload.eventType === 'UPDATE') {
-            setShopProducts(prev => prev.map(p => {
-              if (p.id === payload.new.id) {
-                return {
-                  id: payload.new.id,
-                  title: payload.new.title,
-                  description: payload.new.description || '',
-                  price: parseFloat(payload.new.price) || 0,
-                  images: payload.new.images || [],
-                  stock: payload.new.stock || 0,
-                  category: payload.new.category || '',
-                  status: payload.new.status || 'draft',
-                  created_at: payload.new.created_at,
-                  updated_at: payload.new.updated_at
-                };
-              }
-              return p;
-            }));
-          } else if (payload.eventType === 'DELETE') {
-            setShopProducts(prev => prev.filter(p => p.id !== payload.old.id));
-          }
-        }
-      )
-      .subscribe();
-
-    // Return cleanup function
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  // Subscribe to realtime changes on projects table (Portfolio)
-  const subscribeToProjects = useCallback(() => {
-    const channel = supabase
-      .channel('projects_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'projects'
-        },
-        (payload) => {
-          if ((import.meta as any).env?.DEV) {
-            console.log('[Realtime] Projects change:', payload.eventType);
-          }
-
-          if (payload.eventType === 'INSERT') {
-            setProjects(prev => [payload.new as Project, ...prev]);
-          } else if (payload.eventType === 'UPDATE') {
-            setProjects(prev => prev.map(p =>
-              p.id === payload.new.id ? payload.new as Project : p
-            ));
-          } else if (payload.eventType === 'DELETE') {
-            setProjects(prev => prev.filter(p => p.id !== payload.old.id));
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  // Subscribe to realtime changes on cultural_projects table
-  const subscribeToCulturalProjects = useCallback(() => {
-    const channel = supabase
-      .channel('cultural_projects_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'cultural_projects'
-        },
-        (payload) => {
-          if ((import.meta as any).env?.DEV) {
-            console.log('[Realtime] Cultural Projects change:', payload.eventType);
-          }
-
-          if (payload.eventType === 'INSERT') {
-            setCulturalProjects(prev => [payload.new as CulturalProject, ...prev]);
-          } else if (payload.eventType === 'UPDATE') {
-            setCulturalProjects(prev => prev.map(p =>
-              p.id === payload.new.id ? payload.new as CulturalProject : p
-            ));
-          } else if (payload.eventType === 'DELETE') {
-            setCulturalProjects(prev => prev.filter(p => p.id !== payload.old.id));
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  // Subscribe to realtime changes on messages table
-  const subscribeToMessages = useCallback(() => {
-    const channel = supabase
-      .channel('messages_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'messages'
-        },
-        (payload) => {
-          if ((import.meta as any).env?.DEV) console.log('[Realtime] Messages change:', payload.eventType);
-
-          if (payload.eventType === 'INSERT') {
-            const newMsg: Message = {
-              id: payload.new.id,
-              name: payload.new.name,
-              email: payload.new.email,
-              phone: payload.new.phone,
-              subject: payload.new.subject,
-              message: payload.new.message,
-              source: payload.new.source,
-              status: payload.new.status,
-              createdAt: payload.new.created_at
-            };
-            setMessages(prev => {
-              if (prev.some(m => m.id === newMsg.id)) return prev;
-              return [newMsg, ...prev];
-            });
-          } else if (payload.eventType === 'UPDATE') {
-            setMessages(prev => prev.map(m =>
-              m.id === payload.new.id ? {
-                ...m,
-                status: payload.new.status, // Usually only status updates interactively
-                // Update other fields if needed
-                name: payload.new.name,
-                email: payload.new.email,
-                phone: payload.new.phone,
-                subject: payload.new.subject,
-                message: payload.new.message
-              } : m
-            ));
-          } else if (payload.eventType === 'DELETE') {
-            setMessages(prev => prev.filter(m => m.id !== payload.old.id));
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  // Subscribe to realtime changes on site_settings table (Phase 4)
-  const subscribeToSiteSettings = useCallback(() => {
-    const channel = supabase
-      .channel('site_settings_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'site_settings',
-          filter: `id=eq.${SETTINGS_ID}`
-        },
-        (payload) => {
-          if ((import.meta as any).env?.DEV) {
-            console.log('[Realtime] Site Settings change detected');
-          }
-
-          const row = payload.new as any;
-
-          // Update Site Content (About + Office)
-          if (row.about || row.office) {
-            setSiteContent({
-              about: { ...DEFAULT_SITE_CONTENT.about, ...(row.about || {}) },
-              office: { ...DEFAULT_SITE_CONTENT.office, ...(row.office || {}) }
-            });
-          }
-
-          // Update Global Settings + Schedule
-          if (row.settings) {
-            const savedBundle = row.settings;
-            if (savedBundle.global) {
-              setSettings({
-                ...DEFAULT_SETTINGS,
-                ...savedBundle.global,
-                aiConfig: {
-                  ...DEFAULT_SETTINGS.aiConfig,
-                  ...(savedBundle.global.aiConfig || {})
-                },
-                chatbotConfig: savedBundle.global.chatbotConfig || DEFAULT_SETTINGS.chatbotConfig
-              });
-            }
-            if (savedBundle.schedule) {
-              setScheduleSettings({ ...DEFAULT_SCHEDULE_SETTINGS, ...savedBundle.schedule });
-            }
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  // --- GLOBAL REALTIME SUBSCRIPTIONS ACTIVATION ---
-  // Activate subscriptions after functions are defined
-  useEffect(() => {
-    const unsubscribeSettings = subscribeToSiteSettings();
-    const unsubscribeMessages = subscribeToMessages();
-
-    if ((import.meta as any).env?.DEV) {
-      console.log('[Realtime] Global subscriptions activated (site_settings, messages)');
-    }
-
-    return () => {
-      unsubscribeSettings?.();
-      unsubscribeMessages?.();
-    };
-  }, [subscribeToSiteSettings, subscribeToMessages]);
-
-  const addShopProduct = async (product: Omit<ShopProduct, 'id' | 'created_at' | 'updated_at'>): Promise<ShopProduct | null> => {
-    try {
-      const { data, error } = await supabase
-        .from('shop_products')
-        .insert({
-          title: product.title,
-          description: product.description,
-          price: product.price,
-          images: product.images,
-          stock: product.stock,
-          category: product.category,
-          status: product.status
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      const newProduct: ShopProduct = {
-        id: data.id,
-        title: data.title,
-        description: data.description || '',
-        price: parseFloat(data.price) || 0,
-        images: data.images || [],
-        stock: data.stock || 0,
-        category: data.category || '',
-        status: data.status || 'draft',
-        created_at: data.created_at,
-        updated_at: data.updated_at
-      };
-
-      setShopProducts(prev => [newProduct, ...prev]);
-      showToast('Produto criado com sucesso!', 'success');
-      return newProduct;
-    } catch (error) {
-      console.error('Error adding shop product:', error);
-      showToast('Erro ao criar produto.', 'error');
-      return null;
-    }
-  };
-
-  const updateShopProduct = async (product: ShopProduct): Promise<boolean> => {
-    try {
-      const { error } = await supabase
-        .from('shop_products')
-        .update({
-          title: product.title,
-          description: product.description,
-          price: product.price,
-          images: product.images,
-          stock: product.stock,
-          category: product.category,
-          status: product.status,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', product.id);
-
-      if (error) throw error;
-
-      setShopProducts(prev => prev.map(p => p.id === product.id ? product : p));
-      showToast('Produto atualizado!', 'success');
-      return true;
-    } catch (error) {
-      console.error('Error updating shop product:', error);
-      showToast('Erro ao atualizar produto.', 'error');
-      return false;
-    }
-  };
-
-  const deleteShopProduct = async (id: string): Promise<boolean> => {
-    try {
-      const { error } = await supabase
-        .from('shop_products')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
-      setShopProducts(prev => prev.filter(p => p.id !== id));
-      showToast('Produto excluído.', 'info');
-      return true;
-    } catch (error) {
-      console.error('Error deleting shop product:', error);
-      showToast('Erro ao excluir produto.', 'error');
-      return false;
-    }
-  };
-
-  const fetchShopOrders = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('shop_orders')
-        .select(`
-          *,
-          items:shop_order_items(
-            *,
-            product:shop_products(*)
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      const orders: ShopOrder[] = (data || []).map((o: any) => ({
-        id: o.id,
-        userId: o.user_id,
-        status: o.status,
-        total: parseFloat(o.total) || 0,
-        shippingAddress: o.shipping_address || {},
-        paymentMethod: o.payment_method || '',
-        notes: o.notes,
-        items: (o.items || []).map((item: any) => ({
-          id: item.id,
-          orderId: item.order_id,
-          productId: item.product_id,
-          quantity: item.quantity,
-          unitPrice: parseFloat(item.unit_price) || 0,
-          product: item.product ? {
-            id: item.product.id,
-            title: item.product.title,
-            description: item.product.description || '',
-            price: parseFloat(item.product.price) || 0,
-            images: item.product.images || [],
-            stock: item.product.stock || 0,
-            category: item.product.category || '',
-            status: item.product.status || 'draft'
-          } : undefined
-        })),
-        created_at: o.created_at,
-        updated_at: o.updated_at
-      }));
-
-      setShopOrders(orders);
-    } catch (error) {
-      console.error('Error fetching shop orders:', error);
-    }
-  };
-
-  const updateShopOrderStatus = async (orderId: string, status: ShopOrder['status']): Promise<boolean> => {
-    try {
-      const { error } = await supabase
-        .from('shop_orders')
-        .update({ status, updated_at: new Date().toISOString() })
-        .eq('id', orderId);
-
-      if (error) throw error;
-
-      setShopOrders(prev => prev.map(o => o.id === orderId ? { ...o, status } : o));
-      showToast('Status do pedido atualizado!', 'success');
-      return true;
-    } catch (error) {
-      console.error('Error updating order status:', error);
-      showToast('Erro ao atualizar status do pedido.', 'error');
-      return false;
-    }
-  };
-
-  const createShopOrder = async (
-    order: Omit<ShopOrder, 'id' | 'created_at' | 'updated_at'>,
-    items: { productId: string; quantity: number; unitPrice: number }[]
-  ): Promise<ShopOrder | null> => {
-    try {
-      // 1. Create the order
-      const { data: orderData, error: orderError } = await supabase
-        .from('shop_orders')
-        .insert({
-          user_id: order.userId,
-          status: order.status || 'pending',
-          total: order.total,
-          shipping_address: order.shippingAddress,
-          payment_method: order.paymentMethod,
-          notes: order.notes
-        })
-        .select()
-        .single();
-
-      if (orderError) throw orderError;
-
-      // 2. Create order items
-      const orderItems = items.map(item => ({
-        order_id: orderData.id,
-        product_id: item.productId,
-        quantity: item.quantity,
-        unit_price: item.unitPrice
-      }));
-
-      const { error: itemsError } = await supabase
-        .from('shop_order_items')
-        .insert(orderItems);
-
-      if (itemsError) throw itemsError;
-
-      // 3. Decrement stock for each product
-      for (const item of items) {
-        const product = shopProducts.find(p => p.id === item.productId);
-        if (product) {
-          await supabase
-            .from('shop_products')
-            .update({ stock: Math.max(0, product.stock - item.quantity) })
-            .eq('id', item.productId);
-        }
-      }
-
-      // 4. Refresh products to get updated stock
-      await fetchShopProducts();
-
-      const newOrder: ShopOrder = {
-        id: orderData.id,
-        userId: orderData.user_id,
-        status: orderData.status,
-        total: parseFloat(orderData.total) || 0,
-        shippingAddress: orderData.shipping_address || {},
-        paymentMethod: orderData.payment_method || '',
-        notes: orderData.notes,
-        created_at: orderData.created_at,
-        updated_at: orderData.updated_at
-      };
-
-      setShopOrders(prev => [newOrder, ...prev]);
-      showToast('Pedido criado com sucesso!', 'success');
-      return newOrder;
-    } catch (error) {
-      console.error('Error creating shop order:', error);
-      showToast('Erro ao criar pedido.', 'error');
-      return null;
-    }
-  };
-
-  // ==================== END SHOP FUNCTIONS ====================
-
   const logAiFeedback = (item: Omit<AiFeedbackItem, 'id' | 'createdAt'>) => {
     const newItem: AiFeedbackItem = {
       ...item,
@@ -1766,10 +916,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
         office: siteContent.office,
         projects: projects,
         culturalProjects: culturalProjects
-      }, {
-        ...settings.aiConfig,
-        chatbotConfig: settings.chatbotConfig
-      });
+      }, settings.aiConfig);
 
       const botMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -1791,54 +938,17 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   };
 
-  // Unified Message Actions
-  const addMessage = async (msg: Omit<Message, 'id' | 'createdAt' | 'status'>) => {
-    try {
-      const { data, error } = await supabase
-        .from('messages')
-        .insert({
-          name: msg.name,
-          email: msg.email || null,
-          phone: msg.phone || null,
-          subject: msg.subject || null,
-          message: msg.message,
-          source: msg.source,
-          status: 'new'
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('[Messages] Error saving:', error);
-        // Fallback local
-        const localMsg: Message = {
-          ...msg,
-          id: Math.random().toString(36).substr(2, 9),
-          createdAt: new Date().toISOString(),
-          status: 'new'
-        };
-        setMessages(prev => [localMsg, ...prev]);
-        return;
-      }
-      // Realtime will handle the update, but optimistic update is fine too if we wanted
-    } catch (err) {
-      console.error('[Messages] Unexpected error:', err);
-    }
+  const addAdminNote = (note: Omit<AdminNote, 'id' | 'date' | 'status'>) => {
+    const newNote: AdminNote = {
+      ...note,
+      id: Math.random().toString(36).substr(2, 9),
+      date: new Date().toISOString(),
+      status: 'new'
+    };
+    setAdminNotes(prev => [newNote, ...prev]);
   };
-
-  const updateMessageStatus = async (id: string, status: Message['status']) => {
-    const { error } = await supabase.from('messages').update({ status }).eq('id', id);
-    if (!error) {
-      setMessages(prev => prev.map(m => m.id === id ? { ...m, status } : m));
-    }
-  };
-
-  const deleteMessage = async (id: string) => {
-    const { error } = await supabase.from('messages').delete().eq('id', id);
-    if (!error) {
-      setMessages(prev => prev.filter(m => m.id !== id));
-    }
-  };
+  const markNoteAsRead: (id: string) => void = (id) => setAdminNotes(prev => prev.map(n => n.id === id ? { ...n, status: 'read' } : n));
+  const deleteAdminNote = (id: string) => setAdminNotes(prev => prev.filter(n => n.id !== id));
 
   return (
     <ProjectContext.Provider value={{
@@ -1848,7 +958,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
       users,
       siteContent,
       settings,
-      messages,
+      adminNotes,
       aiFeedbacks,
       isLoadingAuth,
       isLoadingData,
@@ -1863,7 +973,6 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
       deleteCulturalProject,
       updateSiteContent,
       updateSettings,
-      persistAllSettings,
       sendMessageToAI,
       addMessageToChat,
       updateMessageUI,
@@ -1884,12 +993,9 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
       uploadFileToFolder,
       deleteClientFile,
       updateUser,
-      addAddress,
-      updateAddress,
-      deleteAddress,
-      addMessage,
-      updateMessageStatus,
-      deleteMessage,
+      addAdminNote,
+      markNoteAsRead,
+      deleteAdminNote,
       appointments,
       scheduleSettings,
       updateScheduleSettings,
@@ -1900,23 +1006,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
       checkAvailability,
       toast,
       showToast,
-      hideToast,
-
-      // Shop / E-commerce
-      shopProducts,
-      shopOrders,
-      fetchShopProducts,
-      addShopProduct,
-      updateShopProduct,
-      deleteShopProduct,
-      fetchShopOrders,
-      updateShopOrderStatus,
-      createShopOrder,
-      subscribeToShopProducts,
-      subscribeToProjects,
-      subscribeToCulturalProjects,
-      subscribeToMessages,
-      subscribeToSiteSettings
+      hideToast
     }}>
       {children}
     </ProjectContext.Provider>

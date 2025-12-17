@@ -7,43 +7,65 @@ interface EmailPayload {
   tags: string[];
 }
 
-import { supabase } from '../supabaseClient';
-
-interface EmailPayload {
-  subject: string;
-  htmlContent: string;
-  tags: string[];
-}
+// Configurações via Variáveis de Ambiente
+const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
+const API_KEY = (import.meta as any).env.VITE_BREVO_API_KEY;
+const SENDER_NAME = (import.meta as any).env.VITE_BREVO_SENDER_NAME || 'Thebaldi - Suporte';
+const SENDER_EMAIL = (import.meta as any).env.VITE_BREVO_SENDER_EMAIL || 'suporte@othebaldi.me';
+const ADMIN_EMAILS_STRING = (import.meta as any).env.VITE_BREVO_ADMIN_EMAILS || '';
 
 /**
- * Função interna para enviar o e-mail via Supabase Edge Function
- * Removemos a exposição da API KEY no frontend.
- * A função no servidor se encarrega de usar a chave segura.
+ * Função interna para enviar o e-mail via API REST do Brevo
  */
 const sendBrevoEmail = async (data: EmailPayload): Promise<boolean> => {
+  if (!API_KEY) {
+    console.warn('[Brevo] API Key não configurada. O e-mail não será enviado.');
+    return false;
+  }
+
+  // Processar múltiplos destinatários
+  const toAddresses = ADMIN_EMAILS_STRING.split(',')
+    .map((email: string) => email.trim())
+    .filter((email: string) => email.length > 0)
+    .map((email: string) => ({ email, name: 'Admin Fran Siller' }));
+
+  if (toAddresses.length === 0) {
+    console.error('[Brevo] Nenhum e-mail de administrador configurado.');
+    return false;
+  }
+
   try {
-    const { error } = await supabase.functions.invoke('send-email', {
-      body: {
+    const response = await fetch(BREVO_API_URL, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'api-key': API_KEY,
+      },
+      body: JSON.stringify({
+        sender: { name: SENDER_NAME, email: SENDER_EMAIL },
+        to: toAddresses,
         subject: data.subject,
         htmlContent: data.htmlContent,
-        tags: data.tags,
-      },
+        tags: [...data.tags, 'admin_notification', 'fran_siller_system'],
+      }),
     });
 
-    if (error) {
-      console.error('[Edge Function] Erro ao enviar email:', error);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[Brevo] Erro na API (${response.status}):`, errorText);
       return false;
     }
 
-    console.log('[Edge Function] E-mail enviado com sucesso via servidor seguro.');
+    const result = await response.json();
+    console.log('[Brevo] E-mail enviado com sucesso:', result);
     return true;
 
   } catch (error) {
-    console.error('[Edge Function] Erro de conexão:', error);
+    console.error('[Brevo] Erro de conexão:', error);
     return false;
   }
 };
-
 
 // ============================================================================
 // TEMPLATES E FUNÇÕES PÚBLICAS
@@ -173,46 +195,5 @@ export const notifyNewAppointment = async (data: { clientName: string; date: str
     subject: `📅 Agenda: ${data.clientName} - ${typeLabel}`,
     htmlContent: html,
     tags: ['list_8', 'new_appointment']
-  });
-};
-
-/**
- * Notificar nova mensagem de contato (Fale Conosco)
- */
-export const notifyNewContactMessage = async (data: {
-  name: string;
-  email: string;
-  phone?: string;
-  subject: string;
-  message: string;
-}) => {
-  const html = getBaseTemplate(
-    'Nova Mensagem de Contato',
-    '#3B82F6', // Azul
-    `
-    <p>Alguém entrou em contato através do formulário "Fale Conosco".</p>
-    <div class="info-box">
-      <span class="label">Nome</span>
-      <span class="value">${data.name}</span>
-      
-      <span class="label">E-mail</span>
-      <span class="value"><a href="mailto:${data.email}" style="color: #3B82F6;">${data.email}</a></span>
-      
-      ${data.phone ? `<span class="label">Telefone</span><span class="value">${data.phone}</span>` : ''}
-      
-      <span class="label">Assunto</span>
-      <span class="value">${data.subject}</span>
-      
-      <span class="label">Mensagem</span>
-      <span class="value" style="white-space: pre-wrap;">${data.message}</span>
-    </div>
-    <p>Responda diretamente pelo e-mail do cliente ou acesse o painel para gerenciar mensagens.</p>
-    `
-  );
-
-  return sendBrevoEmail({
-    subject: `📬 Contato: ${data.subject} - ${data.name}`,
-    htmlContent: html,
-    tags: ['contact_form', 'fale_conosco']
   });
 };

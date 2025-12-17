@@ -11,22 +11,6 @@ export function isIOS(): boolean {
 }
 
 /**
- * Detect if the device is iOS using Chrome browser
- * Chrome on iOS has "CriOS" in the user agent string
- */
-export function isIOSChrome(): boolean {
-    const userAgent = window.navigator.userAgent;
-    return isIOS() && /CriOS/.test(userAgent);
-}
-
-/**
- * Detect if the device is iOS using Safari browser
- */
-export function isIOSSafari(): boolean {
-    return isIOS() && !isIOSChrome();
-}
-
-/**
  * Detect if the device is Android
  */
 export function isAndroid(): boolean {

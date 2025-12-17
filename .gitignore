@@ -11,10 +11,6 @@ node_modules
 dist
 dist-ssr
 *.local
-*.env
-*.env.local
-*.env.example
-ARQUIVOS
 
 # Editor directories and files
 .vscode/*
@@ -26,8 +22,5 @@ ARQUIVOS
 *.njsproj
 *.sln
 *.sw?
-*.sql
-debug-supabase.js
-
-# Arquivo .gitignore
-*.code-workspace
+arquivos
+.env

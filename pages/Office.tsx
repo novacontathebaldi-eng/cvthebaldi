@@ -1,9 +1,8 @@
 import React from 'react';
 import { useProjects } from '../context/ProjectContext';
 import { motion, Variants } from 'framer-motion';
-import { MapPin, Clock, Phone } from 'lucide-react';
+import { MapPin, Clock, Phone, Loader2 } from 'lucide-react';
 import { OfficeDetails } from '../types';
-import { LoadingScreen } from '../components/loading';
 
 export const Office: React.FC = () => {
   const { siteContent } = useProjects();
@@ -27,7 +26,12 @@ export const Office: React.FC = () => {
   };
 
   if (isLoadingData) {
-    return <LoadingScreen message="Carregando conteúdo..." />;
+    return (
+      <div className="min-h-screen pt-32 pb-20 flex flex-col items-center justify-center text-center px-6">
+        <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
+        <p className="text-gray-500">Carregando conteúdo...</p>
+      </div>
+    );
   }
 
   if (!blocks || blocks.length === 0) {

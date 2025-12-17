@@ -4,39 +4,25 @@
 
 /* Custom scrollbar for modern feel */
 @layer base {
-
-  html,
-  body {
-    overflow-x: hidden;
-  }
-
   ::-webkit-scrollbar {
     width: 8px;
   }
-
   ::-webkit-scrollbar-track {
-    background: #f1f1f1;
+    background: #f1f1f1; 
   }
-
   ::-webkit-scrollbar-thumb {
-    background: #d4bbb0;
+    background: #d4bbb0; 
     border-radius: 4px;
   }
-
   ::-webkit-scrollbar-thumb:hover {
-    background: #bfa094;
+    background: #bfa094; 
   }
 }
 
 /* Custom Animations missing from Tailwind Default Config */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .animate-fadeIn {
@@ -44,15 +30,8 @@
 }
 
 @keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-slideUp {
@@ -60,15 +39,8 @@
 }
 
 @keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-slideDown {
@@ -83,70 +55,4 @@
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
-}
-
-/* Obras Selecionadas scroll - hidden on mobile, visible on desktop */
-.obras-scroll {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.obras-scroll::-webkit-scrollbar {
-  display: none;
-}
-
-@media (min-width: 1024px) {
-  .obras-scroll {
-    scrollbar-width: thin;
-    scrollbar-color: #d4bbb0 #f1f1f1;
-  }
-
-  .obras-scroll::-webkit-scrollbar {
-    display: block;
-    height: 8px;
-  }
-
-  .obras-scroll::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
-  }
-
-  .obras-scroll::-webkit-scrollbar-thumb {
-    background: #d4bbb0;
-    border-radius: 4px;
-  }
-
-  .obras-scroll::-webkit-scrollbar-thumb:hover {
-    background: #bfa094;
-  }
-}
-
-/* Brevo Widget Control - Hidden by default */
-#brevo-root {
-  display: none !important;
-  opacity: 0 !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
-}
-
-body.brevo-visible #brevo-root {
-  display: block !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-  pointer-events: auto !important;
-  z-index: 99999 !important;
-  position: fixed !important;
-}
-
-/* Mobile: Ensure Brevo appears above our chatbot */
-@media (max-width: 768px) {
-  body.brevo-visible #brevo-root,
-  body.brevo-visible #brevo-root * {
-    z-index: 99999 !important;
-  }
-  
-  /* Hide our chatbot when Brevo is visible on mobile */
-  body.brevo-visible .chatbot-scroll-view {
-    z-index: 1 !important;
-  }
 }
